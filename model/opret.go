@@ -5,10 +5,12 @@ import (
 	"fmt"
 )
 
+// Errors
 var (
 	ErrCannotDecodeOpReturn = errors.New("ErrCannotDecodeOpReturn")
 )
 
+// EncodeOpReturn encodes the given Anchor to OP_RETURN.
 func EncodeOpReturn(a *Anchor) [80]byte {
 	var opRet [80]byte
 	opRet[0] = 0x42 // B
@@ -22,6 +24,7 @@ func EncodeOpReturn(a *Anchor) [80]byte {
 	return opRet
 }
 
+// DecodeOpReturn decodes the given bytes array to Anchor.
 func DecodeOpReturn(b [80]byte) (*Anchor, error) {
 	// Check signature.
 	if b[0] != 0x42 || b[1] != 0x42 || b[2] != 0x63 || b[3] != 0x31 {
