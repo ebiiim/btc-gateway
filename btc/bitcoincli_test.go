@@ -19,10 +19,12 @@ const (
 	user1 = "taro"
 	pw1   = "super_strong_password"
 
-	txid1       = "57511f74c3836c0d4d62a6183fa54e600372e1aed5b5be2f78ef5b766a314a5d"
-	recvAddr1   = "tb1qhexc7d0fzex7lrzw3l0j2dmvhgegt02ckfdzjr"
-	recvAmount1 = "0.01158624"
-	opRet1      = "7468697320697320612070656e0a" // "this is a pen"
+	txid1        = "57511f74c3836c0d4d62a6183fa54e600372e1aed5b5be2f78ef5b766a314a5d"
+	recvAddr1    = "tb1qhexc7d0fzex7lrzw3l0j2dmvhgegt02ckfdzjr"
+	recvAmount1  = "0.01158624"
+	opRet1       = "7468697320697320612070656e0a" // "this is a pen"
+	rawTx1       = "020000000135658cd01fe92e0b81240d7a3157e2ef87389d92dcf783e170b8003cd3e9acc70000000000ffffffff02e0ad110000000000160014be4d8f35e9164def8c4e8fdf25376cba3285bd580000000000000000106a0e7468697320697320612070656e0a00000000"
+	signedRawTx1 = "0200000000010135658cd01fe92e0b81240d7a3157e2ef87389d92dcf783e170b8003cd3e9acc70000000000ffffffff02e0ad110000000000160014be4d8f35e9164def8c4e8fdf25376cba3285bd580000000000000000106a0e7468697320697320612070656e0a0247304402207081f817c5cfe5579c44b770ce13fe8b4aff04a241a666e2ad8a6cdf2f88286e02202176b0ae03924adb869b4c17ae3ef1bee12ed0a0798e7673bfeeeb290d954eb501210201f52ea462e04534e2e5f9be72a4bddd6e5fe7a001bc8bdba8a8dad392222d5300000000"
 )
 
 func TestCalcFee(t *testing.T) {
@@ -281,7 +283,32 @@ func TestBitcoinCLI_CreateRawTransactionForAnchor(t *testing.T) {
 
 func TestBitcoinCLI_SignRawTransactionWithWallet(t *testing.T) {
 	btc.DryRun(true)
-	// TODO
+
+	t.Parallel()
+	cases := []struct {
+		name        string
+		rawTx       string
+		fullcommand string
+	}{
+		{"normal", rawTx1, fmt.Sprintf("%s -chain=test signrawtransactionwithwallet %s", path1, rawTx1)},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			b := btc.NewBitcoinCLI(path1, model.BTCTestnet3, "", "", "", "")
+			ctx := context.Background()
+			bRawTx, _ := hex.DecodeString(c.rawTx)
+			_, err := b.SignRawTransactionWithWallet(ctx, bRawTx)
+			if !errors.Is(err, btc.ErrDryRun) {
+				t.Errorf("unexpected err %+v", err)
+				t.Skip()
+			}
+			if err.Error() != c.fullcommand {
+				t.Errorf("got %+v but want %+v", err.Error(), c.fullcommand)
+			}
+		})
+	}
 }
 
 func TestBitcoinCLI_ParseSignRawTransactionWithWallet(t *testing.T) {
@@ -289,5 +316,31 @@ func TestBitcoinCLI_ParseSignRawTransactionWithWallet(t *testing.T) {
 }
 
 func TestBitcoinCLI_SendRawTransaction(t *testing.T) {
-	// TODO
+	btc.DryRun(true)
+
+	t.Parallel()
+	cases := []struct {
+		name        string
+		signedRawTx string
+		fullcommand string
+	}{
+		{"normal", signedRawTx1, fmt.Sprintf("%s -chain=test sendrawtransaction %s", path1, signedRawTx1)},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			b := btc.NewBitcoinCLI(path1, model.BTCTestnet3, "", "", "", "")
+			ctx := context.Background()
+			bSignedRawTx, _ := hex.DecodeString(c.signedRawTx)
+			_, err := b.SendRawTransaction(ctx, bSignedRawTx)
+			if !errors.Is(err, btc.ErrDryRun) {
+				t.Errorf("unexpected err %+v", err)
+				t.Skip()
+			}
+			if err.Error() != c.fullcommand {
+				t.Errorf("got %+v but want %+v", err.Error(), c.fullcommand)
+			}
+		})
+	}
 }
