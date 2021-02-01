@@ -7,7 +7,9 @@ import (
 
 // Errors
 var (
-	ErrCannotDecodeOpReturn = errors.New("ErrCannotDecodeOpReturn")
+	ErrInvalidSignature = errors.New("ErrInvalidSignature")
+	ErrInvalidVersion   = errors.New("ErrInvalidVersion")
+	ErrInvalidBTCNet    = errors.New("ErrInvalidBTCNet")
 )
 
 // EncodeOpReturn encodes the given Anchor to OP_RETURN.
@@ -28,7 +30,7 @@ func EncodeOpReturn(a *Anchor) [80]byte {
 func DecodeOpReturn(b [80]byte) (*Anchor, error) {
 	// Check signature.
 	if b[0] != 0x42 || b[1] != 0x42 || b[2] != 0x63 || b[3] != 0x31 {
-		return nil, fmt.Errorf("%w (invalid signature %s)", ErrCannotDecodeOpReturn, b[0:4])
+		return nil, fmt.Errorf("%w (AnchorSignature: %s)", ErrInvalidSignature, b[0:4])
 	}
 
 	var a Anchor
@@ -36,11 +38,11 @@ func DecodeOpReturn(b [80]byte) (*Anchor, error) {
 	// Check Version and BTCNet.
 	a.Version = b[4]
 	if _, ok := validAnchorVersions[a.Version]; !ok {
-		return nil, fmt.Errorf("%w (invalid anchor version %v)", ErrCannotDecodeOpReturn, a.Version)
+		return nil, fmt.Errorf("%w (AnchorVersion: %v)", ErrInvalidVersion, a.Version)
 	}
 	a.BTCNet = BTCNet(b[5])
 	if _, ok := BTCNetNames[a.BTCNet]; !ok {
-		return nil, fmt.Errorf("%w (invalid bitcoin network %v)", ErrCannotDecodeOpReturn, a.BTCNet)
+		return nil, fmt.Errorf("%w (AnchorBTCNet: %v)", ErrInvalidBTCNet, BTCNetNames[a.BTCNet])
 	}
 
 	// Copy BBc1DomainID and BBc1TransactionID

@@ -2,6 +2,7 @@ package model_test
 
 import (
 	"encoding/hex"
+	"errors"
 	"reflect"
 	"testing"
 	"time"
@@ -138,17 +139,18 @@ func TestDecodeOpReturnErr(t *testing.T) {
 	cases := []struct {
 		name  string
 		input [80]byte
+		want  error
 	}{
-		{"invalid_signature", InvalidSig},
-		{"invalid_version", InvalidVer},
-		{"invalid_network", InvalidNet},
+		{"invalid_signature", InvalidSig, model.ErrInvalidSignature},
+		{"invalid_version", InvalidVer, model.ErrInvalidVersion},
+		{"invalid_network", InvalidNet, model.ErrInvalidBTCNet},
 	}
 	for _, c := range cases {
 		c := c
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			if _, err := model.DecodeOpReturn(c.input); err == nil {
-				t.Error("error must not be nil")
+			if _, err := model.DecodeOpReturn(c.input); !errors.Is(err, c.want) {
+				t.Errorf("got %+v but want %+v", err, c.want)
 			}
 		})
 	}
