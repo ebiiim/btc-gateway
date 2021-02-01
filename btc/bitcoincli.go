@@ -123,11 +123,28 @@ func (b *BitcoinCLI) connArgs() []string {
 	return s
 }
 
+func removeSpecialChars(buf *bytes.Buffer, enable bool) *bytes.Buffer {
+	if !enable {
+		return buf
+	}
+	var buf2 bytes.Buffer
+	bb := buf.Bytes()
+	for _, b := range bb {
+		switch b {
+		case 0x000d, 0x000a: // CR, LF
+			continue
+		default:
+			_ = buf2.WriteByte(b) // always nil
+		}
+	}
+	return &buf2
+}
+
 // Test use only.
 var dryRun = false
 
 // run returns (stdout, stderr, error).
-func (b *BitcoinCLI) run(ctx context.Context, args []string) (*bytes.Buffer, *bytes.Buffer, error) {
+func (b *BitcoinCLI) run(ctx context.Context, args []string, noCRLF bool) (*bytes.Buffer, *bytes.Buffer, error) {
 	args = append(b.connArgs(), args...)
 	if dryRun {
 		return nil, nil, fmt.Errorf("%w%s %s", ErrDryRun, b.binPath, strings.Join(args, " "))
@@ -141,17 +158,19 @@ func (b *BitcoinCLI) run(ctx context.Context, args []string) (*bytes.Buffer, *by
 		return nil, nil, fmt.Errorf("%w (%v)", ErrFailedToExec, err)
 	}
 	ec := cmd.ProcessState.ExitCode()
+	so := removeSpecialChars(&stdout, noCRLF)
+	se := removeSpecialChars(&stderr, noCRLF)
 	switch ec {
 	case exitOK:
-		return &stdout, &stderr, nil
+		return so, se, nil
 	case exitERR:
-		return &stdout, &stderr, ErrExitCode1
+		return so, se, ErrExitCode1
 	case exitInvalidTXID, exitWrongSizeTXID:
-		return &stdout, &stderr, ErrInvalidTransactionID
+		return so, se, ErrInvalidTransactionID
 	case exitWalletNotLoaded:
-		return &stdout, &stderr, ErrWalletNotLoaded
+		return so, se, ErrWalletNotLoaded
 	default:
-		return &stdout, &stderr, fmt.Errorf("%w (%v)", ErrUnexpectedExitCode, ec)
+		return so, se, fmt.Errorf("%w (%v)", ErrUnexpectedExitCode, ec)
 	}
 }
 
@@ -159,7 +178,7 @@ func (b *BitcoinCLI) run(ctx context.Context, args []string) (*bytes.Buffer, *by
 //
 // Possible errors: ErrExitCode1|ErrUnexpectedExitCode|ErrFailedToExec
 func (b *BitcoinCLI) Ping(ctx context.Context) error {
-	if stdout, stderr, err := b.run(ctx, []string{cmdPing}); err != nil {
+	if stdout, stderr, err := b.run(ctx, []string{cmdPing}, true); err != nil {
 		if errors.Is(err, ErrDryRun) {
 			return err
 		}
@@ -172,7 +191,7 @@ func (b *BitcoinCLI) Ping(ctx context.Context) error {
 //
 // Possible errors: ErrWalletNotLoaded|ErrUnexpectedExitCode|ErrFailedToExec
 func (b *BitcoinCLI) GetBalance(ctx context.Context) (string, error) {
-	stdout, stderr, err := b.run(ctx, []string{cmdGetBalance})
+	stdout, stderr, err := b.run(ctx, []string{cmdGetBalance}, true)
 	if err != nil {
 		if errors.Is(err, ErrDryRun) {
 			return "", err
@@ -190,7 +209,7 @@ func (b *BitcoinCLI) GetBalance(ctx context.Context) (string, error) {
 //
 // Possible errors: ErrInvalidTransactionID|ErrWalletNotLoaded|ErrUnexpectedExitCode|ErrFailedToExec
 func (b *BitcoinCLI) GetTransaction(ctx context.Context, txid []byte) (*bytes.Buffer, error) {
-	stdout, stderr, err := b.run(ctx, []string{cmdGetTransaction, hex.EncodeToString(txid)})
+	stdout, stderr, err := b.run(ctx, []string{cmdGetTransaction, hex.EncodeToString(txid)}, false)
 	if err != nil {
 		if errors.Is(err, ErrDryRun) {
 			return nil, err
@@ -259,7 +278,7 @@ func (b *BitcoinCLI) ParseTransactionReceived(txJSON *bytes.Buffer, recvAddr str
 //   - data sets OP_RETURN data. Up to 80 bytes.
 //
 // Possible errors: ErrInvalidFee|ErrExitCode1|ErrUnexpectedExitCode|ErrFailedToExec
-func (b *BitcoinCLI) CreateRawTransactionForAnchor(ctx context.Context, fromTxid []byte, balance string, toAddr []byte, fee uint, data []byte) ([]byte, error) {
+func (b *BitcoinCLI) CreateRawTransactionForAnchor(ctx context.Context, fromTxid []byte, balance string, toAddr string, fee uint, data []byte) ([]byte, error) {
 	sFee, err := calcFee(balance, fee)
 	if err != nil {
 		return nil, fmt.Errorf("%w (%v)", ErrInvalidFee, err)
@@ -267,8 +286,8 @@ func (b *BitcoinCLI) CreateRawTransactionForAnchor(ctx context.Context, fromTxid
 	argFmt0 := `[{"txid": "%s", "vout": 0}]`
 	argFmt1 := `[{"%s": %s}, {"data": "%s"}]`
 	arg0 := fmt.Sprintf(argFmt0, hex.EncodeToString(fromTxid))
-	arg1 := fmt.Sprintf(argFmt1, hex.EncodeToString(toAddr), sFee, hex.EncodeToString(data))
-	stdout, stderr, err := b.run(ctx, []string{cmdCreateRawTransaction, arg0, arg1})
+	arg1 := fmt.Sprintf(argFmt1, toAddr, sFee, hex.EncodeToString(data))
+	stdout, stderr, err := b.run(ctx, []string{cmdCreateRawTransaction, arg0, arg1}, true)
 	if err != nil {
 		if errors.Is(err, ErrDryRun) {
 			return nil, err
@@ -286,7 +305,7 @@ func (b *BitcoinCLI) CreateRawTransactionForAnchor(ctx context.Context, fromTxid
 //
 // Possible errors: ErrWalletNotLoaded|ErrUnexpectedExitCode|ErrFailedToExec
 func (b *BitcoinCLI) SignRawTransactionWithWallet(ctx context.Context, rawTx []byte) (*bytes.Buffer, error) {
-	stdout, stderr, err := b.run(ctx, []string{cmdSignRawTransactionWithWallet, hex.EncodeToString(rawTx)})
+	stdout, stderr, err := b.run(ctx, []string{cmdSignRawTransactionWithWallet, hex.EncodeToString(rawTx)}, false)
 	if err != nil {
 		if errors.Is(err, ErrDryRun) {
 			return nil, err
@@ -327,7 +346,7 @@ func (b *BitcoinCLI) ParseSignRawTransactionWithWallet(stdout io.Reader) ([]byte
 // Possible errors: ErrUnexpectedExitCode|ErrFailedToExec
 // TODO: Handle more errors.
 func (b *BitcoinCLI) SendRawTransaction(ctx context.Context, signedRawTx []byte) ([]byte, error) {
-	stdout, stderr, err := b.run(ctx, []string{cmdSendRawTransaction, hex.EncodeToString(signedRawTx)})
+	stdout, stderr, err := b.run(ctx, []string{cmdSendRawTransaction, hex.EncodeToString(signedRawTx)}, true)
 	if err != nil {
 		if errors.Is(err, ErrDryRun) {
 			return nil, err

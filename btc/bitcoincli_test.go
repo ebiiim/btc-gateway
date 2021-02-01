@@ -22,6 +22,7 @@ const (
 	txid1       = "57511f74c3836c0d4d62a6183fa54e600372e1aed5b5be2f78ef5b766a314a5d"
 	recvAddr1   = "tb1qhexc7d0fzex7lrzw3l0j2dmvhgegt02ckfdzjr"
 	recvAmount1 = "0.01158624"
+	opRet1      = "7468697320697320612070656e0a" // "this is a pen"
 )
 
 func TestCalcFee(t *testing.T) {
@@ -140,7 +141,7 @@ func TestBitcoinCLI_Run_DryRun(t *testing.T) {
 			t.Parallel()
 			b := btc.NewBitcoinCLI(path1, model.BTCTestnet3, "", "", "", "")
 			ctx := context.Background()
-			stdout, stderr, err := b.Run(ctx, c.args)
+			stdout, stderr, err := b.Run(ctx, c.args, true)
 			if !errors.Is(err, btc.ErrDryRun) {
 				t.Errorf("unexpected err %+v (stdout=%v, stderr=%v)", err, stdout.String(), stderr.String())
 				t.Skip()
@@ -244,7 +245,38 @@ func TestBitcoinCLI_ParseTransactionReceived(t *testing.T) {
 
 func TestBitcoinCLI_CreateRawTransactionForAnchor(t *testing.T) {
 	btc.DryRun(true)
-	// TODO
+
+	t.Parallel()
+	cases := []struct {
+		name        string
+		txid        string
+		bal         string
+		toAddr      string
+		fee         uint
+		data        string
+		recvAmo     string
+		fullcommand string
+	}{
+		{"normal", txid1, "0.01168624", recvAddr1, 10000, opRet1, recvAmount1, fmt.Sprintf(`%s -chain=test createrawtransaction [{"txid": "%s", "vout": 0}] [{"%s": %s}, {"data": "%s"}]`, path1, txid1, recvAddr1, recvAmount1, opRet1)},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			b := btc.NewBitcoinCLI(path1, model.BTCTestnet3, "", "", "", "")
+			ctx := context.Background()
+			bT, _ := hex.DecodeString(c.txid)
+			bOpRet, _ := hex.DecodeString(c.data)
+			_, err := b.CreateRawTransactionForAnchor(ctx, bT, c.bal, c.toAddr, c.fee, bOpRet)
+			if !errors.Is(err, btc.ErrDryRun) {
+				t.Errorf("unexpected err %+v", err)
+				t.Skip()
+			}
+			if err.Error() != c.fullcommand {
+				t.Errorf("got %+v but want %+v", err.Error(), c.fullcommand)
+			}
+		})
+	}
 }
 
 func TestBitcoinCLI_SignRawTransactionWithWallet(t *testing.T) {
