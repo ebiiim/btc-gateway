@@ -2,6 +2,7 @@ package btc_test
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"reflect"
@@ -17,7 +18,39 @@ const (
 	port1 = "12345"
 	user1 = "taro"
 	pw1   = "super_strong_password"
+
+	txid1       = "57511f74c3836c0d4d62a6183fa54e600372e1aed5b5be2f78ef5b766a314a5d"
+	recvAddr1   = "tb1qhexc7d0fzex7lrzw3l0j2dmvhgegt02ckfdzjr"
+	recvAmount1 = "0.01158624"
 )
+
+func TestCalcFee(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name       string
+		bal        string
+		feeSatoshi uint
+		result     string
+	}{
+		{"normal", recvAmount1, 20_000, "0.01138624"},
+		{"big_fee", recvAmount1, 123_456, "0.01035168"},
+		{"big_amo", "12345.12345678", 20_000, "12345.12325678"},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			bal, err := btc.CalcFee(c.bal, c.feeSatoshi)
+			if err != nil {
+				t.Error(err)
+				t.Skip()
+			}
+			if bal != c.result {
+				t.Errorf("got %s but want %s", bal, c.result)
+			}
+		})
+	}
+}
 
 func TestNewBitcoinCLI(t *testing.T) {
 	t.Parallel()
@@ -99,7 +132,7 @@ func TestBitcoinCLI_Run_DryRun(t *testing.T) {
 		args        []string
 		fullcommand string
 	}{
-		{"testName", []string{"ABC"}, fmt.Sprintf("%s -chain=test ABC", path1)},
+		{"normal", []string{"ABC"}, fmt.Sprintf("%s -chain=test ABC", path1)},
 	}
 	for _, c := range cases {
 		c := c
@@ -107,7 +140,35 @@ func TestBitcoinCLI_Run_DryRun(t *testing.T) {
 			t.Parallel()
 			b := btc.NewBitcoinCLI(path1, model.BTCTestnet3, "", "", "", "")
 			ctx := context.Background()
-			err := b.Run(ctx, c.args)
+			stdout, stderr, err := b.Run(ctx, c.args)
+			if !errors.Is(err, btc.ErrDryRun) {
+				t.Errorf("unexpected err %+v (stdout=%v, stderr=%v)", err, stdout.String(), stderr.String())
+				t.Skip()
+			}
+			if err.Error() != c.fullcommand {
+				t.Errorf("got %+v but want %+v", err.Error(), c.fullcommand)
+			}
+		})
+	}
+}
+
+func TestBitcoinCLI_Ping_DryRun(t *testing.T) {
+	btc.DryRun(true)
+
+	t.Parallel()
+	cases := []struct {
+		name        string
+		fullcommand string
+	}{
+		{"normal", fmt.Sprintf("%s -chain=test ping", path1)},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			b := btc.NewBitcoinCLI(path1, model.BTCTestnet3, "", "", "", "")
+			ctx := context.Background()
+			err := b.Ping(ctx)
 			if !errors.Is(err, btc.ErrDryRun) {
 				t.Errorf("unexpected err %+v", err)
 				t.Skip()
@@ -117,4 +178,84 @@ func TestBitcoinCLI_Run_DryRun(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestBitcoinCLI_GetBalance_DryRun(t *testing.T) {
+	btc.DryRun(true)
+
+	t.Parallel()
+	cases := []struct {
+		name        string
+		fullcommand string
+	}{
+		{"normal", fmt.Sprintf("%s -chain=test getbalance", path1)},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			b := btc.NewBitcoinCLI(path1, model.BTCTestnet3, "", "", "", "")
+			ctx := context.Background()
+			_, err := b.GetBalance(ctx)
+			if !errors.Is(err, btc.ErrDryRun) {
+				t.Errorf("unexpected err %+v", err)
+				t.Skip()
+			}
+			if err.Error() != c.fullcommand {
+				t.Errorf("got %+v but want %+v", err.Error(), c.fullcommand)
+			}
+		})
+	}
+}
+
+func TestBitcoinCLI_GetTransaction_DryRun(t *testing.T) {
+	btc.DryRun(true)
+
+	t.Parallel()
+	cases := []struct {
+		name        string
+		txid        string
+		fullcommand string
+	}{
+		{"normal", txid1, fmt.Sprintf("%s -chain=test gettransaction %s", path1, txid1)},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			b := btc.NewBitcoinCLI(path1, model.BTCTestnet3, "", "", "", "")
+			ctx := context.Background()
+			bT, _ := hex.DecodeString(c.txid)
+			_, err := b.GetTransaction(ctx, bT)
+			if !errors.Is(err, btc.ErrDryRun) {
+				t.Errorf("unexpected err %+v", err)
+				t.Skip()
+			}
+			if err.Error() != c.fullcommand {
+				t.Errorf("got %+v but want %+v", err.Error(), c.fullcommand)
+			}
+		})
+	}
+}
+
+func TestBitcoinCLI_ParseTransactionReceived(t *testing.T) {
+	// TODO
+}
+
+func TestBitcoinCLI_CreateRawTransactionForAnchor(t *testing.T) {
+	btc.DryRun(true)
+	// TODO
+}
+
+func TestBitcoinCLI_SignRawTransactionWithWallet(t *testing.T) {
+	btc.DryRun(true)
+	// TODO
+}
+
+func TestBitcoinCLI_ParseSignRawTransactionWithWallet(t *testing.T) {
+	// TODO
+}
+
+func TestBitcoinCLI_SendRawTransaction(t *testing.T) {
+	// TODO
 }
