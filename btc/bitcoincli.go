@@ -63,15 +63,20 @@ var (
 )
 
 // BitcoinCLI contains parameters for bitcoin-cli.
+// Parameters are read only so this struct does not have state.
+//
+// Excepts: xBTCAddr and xTransactionID are mutable. This is under consideration.
 type BitcoinCLI struct {
-	// Path
-	binPath string
-	// Connection
+	binPath     string
 	btcNet      model.BTCNet
 	rpcAddr     string
 	rpcPort     string
 	rpcUser     string
 	rpcPassword string
+
+	// Set by XPrepareAnchor and used by (PutAnchor|GetAnchor) only.
+	xBTCAddr       string
+	xTransactionID []byte
 }
 
 // NewBitcoinCLI initializes a BitcoinCLI.
@@ -360,10 +365,96 @@ func (b *BitcoinCLI) SendRawTransaction(ctx context.Context, signedRawTx []byte)
 	return bs, nil
 }
 
+// Transaction fee in Satoshi.
+const (
+	feeNormal = 20_000
+	feeLarge  = 30_000
+	feeSmall  = 10_000
+)
+
+// txFee sets fee.
+var txFee uint = feeNormal
+
+// XPrepareAnchor sets b.xTransactionID and b.xBTCAddr.
+// As b.PutAnchor does not update b.xTransactionID after sending the transaction,
+// this method should be called every time after PutAnchor (or create a new BitcoinCLI instance).
+func (b *BitcoinCLI) XPrepareAnchor(txid []byte, btcAddr string) {
+	b.xTransactionID = txid
+	b.xBTCAddr = btcAddr
+}
+
 func (b *BitcoinCLI) PutAnchor(ctx context.Context, a *model.Anchor) ([]byte, error) {
-	panic("not implemented")
+	panic("work in progress")
+	// Check the bitcoind.
+	err := b.Ping(ctx)
+	if err != nil {
+		// TODO
+	}
+
+	// Get UTXO balance.
+	fromTx, err := b.GetTransaction(ctx, b.xTransactionID)
+	if err != nil {
+		// TODO
+	}
+	balance, err := b.ParseTransactionReceived(fromTx, b.xBTCAddr)
+	if err != nil {
+		// TODO
+	}
+
+	// Encode OP_RETURN.
+	tmp := model.EncodeOpReturn(a)
+	opRet := tmp[:]
+
+	// Create, sign, and send the anchor transaction.
+	rawTx, err := b.CreateRawTransactionForAnchor(ctx, b.xTransactionID, balance, b.xBTCAddr, txFee, opRet)
+	if err != nil {
+		// TODO
+	}
+	signedTxReader, err := b.SignRawTransactionWithWallet(ctx, rawTx)
+	if err != nil {
+		// TODO
+	}
+	signedTx, err := b.ParseSignRawTransactionWithWallet(signedTxReader)
+	if err != nil {
+		// TODO
+	}
+	sentTxid, err := b.SendRawTransaction(ctx, signedTx)
+	if err != nil {
+		// TODO
+	}
+
+	return sentTxid, nil
 }
 
 func (b *BitcoinCLI) GetAnchor(ctx context.Context, btctx []byte) (*model.AnchorRecord, error) {
-	panic("not implemented")
+	panic("work in progress")
+	// Check the bitcoind.
+	err := b.Ping(ctx)
+	if err != nil {
+		// TODO
+	}
+
+	// Parse the given transaction.
+	// TODO: get timestamp, confirmations, address, and OP_RETURN
+	tx, err := b.GetTransaction(ctx, btctx)
+	if err != nil {
+		// TODO
+	}
+	panic(tx)
+
+	// Decode OP_RETURN.
+	var opRet [80]byte // TODO: set OP_RETURN
+	a, err := model.DecodeOpReturn(opRet)
+	if err != nil {
+		// TODO
+	}
+
+	r := model.AnchorRecord{
+		Anchor:           a,
+		BTCTransactionID: btctx,
+		// Timestamp: ,
+		// Confirmations: ,
+		// BTCAddr: ,
+	}
+	return &r, nil
 }
