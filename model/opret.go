@@ -41,8 +41,8 @@ func DecodeOpReturn(b [80]byte) (*Anchor, error) {
 		return nil, fmt.Errorf("%w (AnchorVersion: %v)", ErrInvalidVersion, a.Version)
 	}
 	a.BTCNet = BTCNet(b[5])
-	if _, ok := BTCNetNames[a.BTCNet]; !ok {
-		return nil, fmt.Errorf("%w (AnchorBTCNet: %v)", ErrInvalidBTCNet, BTCNetNames[a.BTCNet])
+	if n := a.BTCNet.String(); n == "" {
+		return nil, fmt.Errorf("%w (AnchorBTCNet: %v)", ErrInvalidBTCNet, a.BTCNet)
 	}
 
 	// Copy BBc1DomainID and BBc1TransactionID

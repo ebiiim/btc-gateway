@@ -10,11 +10,18 @@ const (
 	BTCMainnet  = 255
 )
 
-// BTCNetNames contains names of Bitcoin networks.
-var BTCNetNames map[BTCNet]string = map[BTCNet]string{
-	BTCMainnet:  "Mainnet",
-	BTCTestnet3: "Testnet3",
-	BTCTestnet4: "Testnet4",
+// String returns the name of n.
+func (n BTCNet) String() string {
+	switch n {
+	default:
+		return ""
+	case BTCMainnet:
+		return "Mainnet"
+	case BTCTestnet3:
+		return "Testnet3"
+	case BTCTestnet4:
+		return "Testnet4"
+	}
 }
 
 // Anchor contains an anchor that can be encoded to OP_RETURN.
