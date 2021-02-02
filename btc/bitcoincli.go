@@ -128,13 +128,13 @@ func (b *BitcoinCLI) connArgs() []string {
 	return s
 }
 
-func removeSpecialChars(buf *bytes.Buffer, enable bool) *bytes.Buffer {
-	if !enable {
-		return buf
-	}
+func removeCRLF(buf *bytes.Buffer) *bytes.Buffer {
 	var buf2 bytes.Buffer
-	bb := buf.Bytes()
-	for _, b := range bb {
+	for {
+		b, err := buf.ReadByte()
+		if err == io.EOF {
+			return &buf2
+		}
 		switch b {
 		case 0x000d, 0x000a: // CR, LF
 			continue
@@ -142,14 +142,13 @@ func removeSpecialChars(buf *bytes.Buffer, enable bool) *bytes.Buffer {
 			_ = buf2.WriteByte(b) // always nil
 		}
 	}
-	return &buf2
 }
 
 // Test use only.
 var dryRun = false
 
 // run returns (stdout, stderr, error).
-func (b *BitcoinCLI) run(ctx context.Context, args []string, noCRLF bool) (*bytes.Buffer, *bytes.Buffer, error) {
+func (b *BitcoinCLI) run(ctx context.Context, args []string) (*bytes.Buffer, *bytes.Buffer, error) {
 	args = append(b.connArgs(), args...)
 	if dryRun {
 		return nil, nil, fmt.Errorf("%w%s %s", ErrDryRun, b.binPath, strings.Join(args, " "))
@@ -160,30 +159,29 @@ func (b *BitcoinCLI) run(ctx context.Context, args []string, noCRLF bool) (*byte
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		return nil, nil, fmt.Errorf("%w (%v)", ErrFailedToExec, err)
+		switch ec := cmd.ProcessState.ExitCode(); ec {
+		case -1:
+			return nil, nil, fmt.Errorf("%w (%v)", ErrFailedToExec, err)
+		case exitOK:
+			return &stdout, &stderr, nil
+		case exitERR:
+			return &stdout, &stderr, ErrExitCode1
+		case exitInvalidTXID, exitWrongSizeTXID:
+			return &stdout, &stderr, ErrInvalidTransactionID
+		case exitWalletNotLoaded:
+			return &stdout, &stderr, ErrWalletNotLoaded
+		default:
+			return &stdout, &stderr, fmt.Errorf("%w (%v)", ErrUnexpectedExitCode, ec)
+		}
 	}
-	ec := cmd.ProcessState.ExitCode()
-	so := removeSpecialChars(&stdout, noCRLF)
-	se := removeSpecialChars(&stderr, noCRLF)
-	switch ec {
-	case exitOK:
-		return so, se, nil
-	case exitERR:
-		return so, se, ErrExitCode1
-	case exitInvalidTXID, exitWrongSizeTXID:
-		return so, se, ErrInvalidTransactionID
-	case exitWalletNotLoaded:
-		return so, se, ErrWalletNotLoaded
-	default:
-		return so, se, fmt.Errorf("%w (%v)", ErrUnexpectedExitCode, ec)
-	}
+	return &stdout, &stderr, nil
 }
 
 // Ping pings bitcoind and returns nil if successful.
 //
 // Possible errors: ErrExitCode1|ErrUnexpectedExitCode|ErrFailedToExec
 func (b *BitcoinCLI) Ping(ctx context.Context) error {
-	if stdout, stderr, err := b.run(ctx, []string{cmdPing}, true); err != nil {
+	if stdout, stderr, err := b.run(ctx, []string{cmdPing}); err != nil {
 		if errors.Is(err, ErrDryRun) {
 			return err
 		}
@@ -196,13 +194,14 @@ func (b *BitcoinCLI) Ping(ctx context.Context) error {
 //
 // Possible errors: ErrWalletNotLoaded|ErrUnexpectedExitCode|ErrFailedToExec
 func (b *BitcoinCLI) GetBalance(ctx context.Context) (string, error) {
-	stdout, stderr, err := b.run(ctx, []string{cmdGetBalance}, true)
+	stdout, stderr, err := b.run(ctx, []string{cmdGetBalance})
 	if err != nil {
 		if errors.Is(err, ErrDryRun) {
 			return "", err
 		}
 		return "", fmt.Errorf("%w (stdout=%s, stderr=%s)", err, stdout.String(), stderr.String())
 	}
+	stdout = removeCRLF(stdout)
 	s := stdout.String()
 	if len(s) == 0 {
 		return "", fmt.Errorf("%w (%v)", ErrFailedToDecode, err)
@@ -214,7 +213,7 @@ func (b *BitcoinCLI) GetBalance(ctx context.Context) (string, error) {
 //
 // Possible errors: ErrInvalidTransactionID|ErrWalletNotLoaded|ErrUnexpectedExitCode|ErrFailedToExec
 func (b *BitcoinCLI) GetTransaction(ctx context.Context, txid []byte) (*bytes.Buffer, error) {
-	stdout, stderr, err := b.run(ctx, []string{cmdGetTransaction, hex.EncodeToString(txid)}, false)
+	stdout, stderr, err := b.run(ctx, []string{cmdGetTransaction, hex.EncodeToString(txid)})
 	if err != nil {
 		if errors.Is(err, ErrDryRun) {
 			return nil, err
@@ -292,13 +291,14 @@ func (b *BitcoinCLI) CreateRawTransactionForAnchor(ctx context.Context, fromTxid
 	argFmt1 := `[{"%s": %s}, {"data": "%s"}]`
 	arg0 := fmt.Sprintf(argFmt0, hex.EncodeToString(fromTxid))
 	arg1 := fmt.Sprintf(argFmt1, toAddr, sFee, hex.EncodeToString(data))
-	stdout, stderr, err := b.run(ctx, []string{cmdCreateRawTransaction, arg0, arg1}, true)
+	stdout, stderr, err := b.run(ctx, []string{cmdCreateRawTransaction, arg0, arg1})
 	if err != nil {
 		if errors.Is(err, ErrDryRun) {
 			return nil, err
 		}
 		return nil, fmt.Errorf("%w (stdout=%s, stderr=%s)", err, stdout.String(), stderr.String())
 	}
+	stdout = removeCRLF(stdout)
 	bs, err := hex.DecodeString(stdout.String())
 	if err != nil || len(bs) == 0 {
 		return nil, fmt.Errorf("%w (%v)", ErrFailedToDecode, err)
@@ -310,13 +310,14 @@ func (b *BitcoinCLI) CreateRawTransactionForAnchor(ctx context.Context, fromTxid
 //
 // Possible errors: ErrWalletNotLoaded|ErrUnexpectedExitCode|ErrFailedToExec
 func (b *BitcoinCLI) SignRawTransactionWithWallet(ctx context.Context, rawTx []byte) (*bytes.Buffer, error) {
-	stdout, stderr, err := b.run(ctx, []string{cmdSignRawTransactionWithWallet, hex.EncodeToString(rawTx)}, false)
+	stdout, stderr, err := b.run(ctx, []string{cmdSignRawTransactionWithWallet, hex.EncodeToString(rawTx)})
 	if err != nil {
 		if errors.Is(err, ErrDryRun) {
 			return nil, err
 		}
 		return nil, fmt.Errorf("%w (stdout=%s, stderr=%s)", err, stdout.String(), stderr.String())
 	}
+	stdout = removeCRLF(stdout)
 	return stdout, nil
 }
 
@@ -351,13 +352,14 @@ func (b *BitcoinCLI) ParseSignRawTransactionWithWallet(stdout io.Reader) ([]byte
 // Possible errors: ErrUnexpectedExitCode|ErrFailedToExec
 // TODO: Handle more errors.
 func (b *BitcoinCLI) SendRawTransaction(ctx context.Context, signedRawTx []byte) ([]byte, error) {
-	stdout, stderr, err := b.run(ctx, []string{cmdSendRawTransaction, hex.EncodeToString(signedRawTx)}, true)
+	stdout, stderr, err := b.run(ctx, []string{cmdSendRawTransaction, hex.EncodeToString(signedRawTx)})
 	if err != nil {
 		if errors.Is(err, ErrDryRun) {
 			return nil, err
 		}
 		return nil, fmt.Errorf("%w (stdout=%s, stderr=%s)", err, stdout.String(), stderr.String())
 	}
+	stdout = removeCRLF(stdout)
 	bs, err := hex.DecodeString(stdout.String())
 	if err != nil || len(bs) == 0 {
 		return nil, fmt.Errorf("%w (%v)", ErrFailedToDecode, err)

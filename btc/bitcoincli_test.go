@@ -143,7 +143,7 @@ func TestBitcoinCLI_Run_DryRun(t *testing.T) {
 			t.Parallel()
 			b := btc.NewBitcoinCLI(path1, model.BTCTestnet3, "", "", "", "")
 			ctx := context.Background()
-			stdout, stderr, err := b.Run(ctx, c.args, true)
+			stdout, stderr, err := b.Run(ctx, c.args)
 			if !errors.Is(err, btc.ErrDryRun) {
 				t.Errorf("unexpected err %+v (stdout=%v, stderr=%v)", err, stdout.String(), stderr.String())
 				t.Skip()

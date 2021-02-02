@@ -16,6 +16,6 @@ func (b *BitcoinCLI) RPCPort() string                     { return b.rpcPort }
 func (b *BitcoinCLI) RPCUser() string                     { return b.rpcUser }
 func (b *BitcoinCLI) RPCPassword() string                 { return b.rpcPassword }
 func (b *BitcoinCLI) ConnArgs() []string                  { return b.connArgs() }
-func (b *BitcoinCLI) Run(ctx context.Context, args []string, noCRLF bool) (*bytes.Buffer, *bytes.Buffer, error) {
-	return b.run(ctx, args, noCRLF)
+func (b *BitcoinCLI) Run(ctx context.Context, args []string) (*bytes.Buffer, *bytes.Buffer, error) {
+	return b.run(ctx, args)
 }
