@@ -1,5 +1,7 @@
 package model
 
+import "time"
+
 // BTCNet represents a Bitcoin network.
 type BTCNet uint8
 
@@ -28,6 +30,7 @@ func (n BTCNet) String() string {
 type Anchor struct {
 	Version           uint8
 	BTCNet            BTCNet
+	Timestamp         time.Time
 	BBc1DomainID      [32]byte
 	BBc1TransactionID [32]byte
 }
@@ -44,13 +47,14 @@ var anchorVersion uint8 = 1
 //
 // Parameters:
 //   - btcnet sets target Bitcoin network.
+//   - timestamp sets time stamp.
 //   - bbc1dom sets BBc-1 Domain ID.
 //   - bbc1tx sets BBc-1 Transaction ID.
 //
 // Anchor.BBc1DomainID and Anchor.BBc1TransactionID are fixed at 32 bytes.
 // If the given []byte is shorter than 32bytes, padding with 0.
 // If the given []byte is longer than 32bytes, only use the first 32 bytes.
-func NewAnchor(btcnet BTCNet, bbc1dom, bbc1tx []byte) *Anchor {
+func NewAnchor(btcnet BTCNet, timestamp time.Time, bbc1dom, bbc1tx []byte) *Anchor {
 	// Copy the first up to 32 bytes from bbc1dom and bbc1tx.
 	var d, t [32]byte
 	dlen := len(bbc1dom)
@@ -67,6 +71,7 @@ func NewAnchor(btcnet BTCNet, bbc1dom, bbc1tx []byte) *Anchor {
 	a := &Anchor{
 		Version:           anchorVersion,
 		BTCNet:            btcnet,
+		Timestamp:         timestamp,
 		BBc1DomainID:      d,
 		BBc1TransactionID: t,
 	}
