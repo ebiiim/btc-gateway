@@ -37,11 +37,17 @@ type Anchor struct {
 
 // validAnchorVersions contains valid anchor versions.
 var validAnchorVersions map[uint8]struct{} = map[uint8]struct{}{
-	1: {},
+	1:   {},
+	255: {},
 }
 
 // anchorVersion specifies the version to be embeded by NewAnchor.
+//   1: Version 1.
+// 255: Test use only.
 var anchorVersion uint8 = 1
+
+// XAnchorVersion sets anchorVersion for test.
+func XAnchorVersion(v uint8) { anchorVersion = v }
 
 // NewAnchor initializes an Anchor.
 //

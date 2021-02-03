@@ -58,6 +58,7 @@ var (
 	InvalidVer = mustConvert80B(mustDecodeHexString("4242633100ff000000000000601ab57e456789abc0ef0123456089abcdef0023456789a0cdef0123406789abcde0012356789abcd0f0123456709abcdef0103456789ab0def0123450789abcdef01234"))
 	InvalidNet = mustConvert80B(mustDecodeHexString("424263310100000000000000601ab57e456789abc0ef0123456089abcdef0023456789a0cdef0123406789abcde0012356789abcd0f0123456709abcdef0103456789ab0def0123450789abcdef01234"))
 	o32Mtime34 = mustConvert80B(mustDecodeHexString("4242633101ff000000000002c22a1570456789abc0ef0123456089abcdef0023456789a0cdef0123406789abcde0012356789abcd0f0123456709abcdef0103456789ab0def0123450789abcdef01234"))
+	o32MAnc255 = mustConvert80B(mustDecodeHexString("42426331ffff000000000000601ab57e456789abc0ef0123456089abcdef0023456789a0cdef0123406789abcde0012356789abcd0f0123456709abcdef0103456789ab0def0123450789abcdef01234"))
 )
 
 func TestNewAnchor(t *testing.T) {
@@ -89,7 +90,8 @@ func TestNewAnchor(t *testing.T) {
 }
 
 func TestEncodeOpReturn(t *testing.T) {
-	t.Parallel()
+	// Do not parallelize as this test changes model.anchorVersion.
+	// t.Parallel()
 	cases := []struct {
 		name  string
 		input *model.Anchor
@@ -99,11 +101,17 @@ func TestEncodeOpReturn(t *testing.T) {
 		{"64bit_testnet3", model.NewAnchor(model.BTCTestnet3, time1, dom64, tx64), opRet64T3},
 		{"16bit_testnet4", model.NewAnchor(model.BTCTestnet4, time1, dom16, tx16), opRet16T4},
 		{"32bit_mainnet_time34bit", model.NewAnchor(model.BTCMainnet, time2, dom32, tx32), o32Mtime34},
+		{"anchor_version_255", func() *model.Anchor {
+			model.XAnchorVersion(255)
+			a := model.NewAnchor(model.BTCMainnet, time1, dom32, tx32)
+			model.XAnchorVersion(1)
+			return a
+		}(), o32MAnc255},
 	}
 	for _, c := range cases {
 		c := c
 		t.Run(c.name, func(t *testing.T) {
-			t.Parallel()
+			// t.Parallel()
 			b := model.EncodeOpReturn(c.input)
 			for i, v := range c.want {
 				if v != b[i] {
