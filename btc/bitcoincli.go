@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ebiiim/btc-gateway/model"
 )
@@ -18,14 +19,13 @@ import (
 type cliCmd string
 
 const (
-	cmdPing = "ping"
-	// cmdGetNewAddress                = "getnewaddress"
-	// cmdListUnspent                  = "listunspent"
+	cmdPing                         = "ping"
 	cmdGetBalance                   = "getbalance"
 	cmdGetTransaction               = "gettransaction"
 	cmdCreateRawTransaction         = "createrawtransaction"
 	cmdSignRawTransactionWithWallet = "signrawtransactionwithwallet"
 	cmdSendRawTransaction           = "sendrawtransaction"
+	cmdDecodeRawTransaction         = "decoderawtransaction"
 )
 
 type cliArg string
@@ -46,21 +46,24 @@ const (
 	exitInvalidTXID     = 5
 	exitWrongSizeTXID   = 8
 	exitWalletNotLoaded = 18
+	exitTxDecodeFailed  = 22
 	exitTxAlreadyExists = 27
 )
 
 // Errors
 var (
-	ErrUnexpectedExitCode   = errors.New("ErrUnexpectedExitCode")
-	ErrExitCode1            = errors.New("ErrExitCode1")
 	ErrDryRun               = errors.New("")
 	ErrFailedToExec         = errors.New("ErrFailedToExec")
 	ErrFailedToDecode       = errors.New("ErrFailedToDecode")
+	ErrInvalidOpReturn      = errors.New("ErrInvalidOpReturn")
+	ErrUnexpectedExitCode   = errors.New("ErrUnexpectedExitCode")
+	ErrExitCode1            = errors.New("ErrExitCode1")
 	ErrPingFailed           = errors.New("ErrPingFailed")
 	ErrInvalidTransactionID = errors.New("ErrInvalidTransactionID")
 	ErrWalletNotLoaded      = errors.New("ErrWalletNotLoaded")
 	ErrInvalidFee           = errors.New("ErrInvalidFee")
 	ErrFailedToSign         = errors.New("ErrFailedToSign")
+	ErrTxDecodeFailed       = errors.New("ErrTxDecodeFailed")
 	ErrTxAlreadyExists      = errors.New("ErrTxAlreadyExists")
 )
 
@@ -172,6 +175,8 @@ func (b *BitcoinCLI) run(ctx context.Context, args []string) (*bytes.Buffer, *by
 			return &stdout, &stderr, ErrInvalidTransactionID
 		case exitWalletNotLoaded:
 			return &stdout, &stderr, ErrWalletNotLoaded
+		case exitTxDecodeFailed:
+			return &stdout, &stderr, ErrTxDecodeFailed
 		case exitTxAlreadyExists:
 			return &stdout, &stderr, ErrTxAlreadyExists
 		default:
@@ -395,21 +400,19 @@ func (b *BitcoinCLI) XPrepareAnchor(txid []byte, btcAddr string) {
 }
 
 func (b *BitcoinCLI) PutAnchor(ctx context.Context, a *model.Anchor) ([]byte, error) {
-	panic("work in progress")
 	// Check the bitcoind.
 	err := b.Ping(ctx)
 	if err != nil {
-		// TODO
+		return nil, fmt.Errorf("%w (PutAnchor)", err)
 	}
-
 	// Get UTXO balance.
 	fromTx, err := b.GetTransaction(ctx, b.xTransactionID)
 	if err != nil {
-		// TODO
+		return nil, fmt.Errorf("%w (PutAnchor)", err)
 	}
 	balance, err := ParseTransactionReceived(fromTx, b.xBTCAddr)
 	if err != nil {
-		// TODO
+		return nil, fmt.Errorf("%w (PutAnchor)", err)
 	}
 
 	// Encode OP_RETURN.
@@ -419,53 +422,105 @@ func (b *BitcoinCLI) PutAnchor(ctx context.Context, a *model.Anchor) ([]byte, er
 	// Create, sign, and send the anchor transaction.
 	rawTx, err := b.CreateRawTransactionForAnchor(ctx, b.xTransactionID, balance, b.xBTCAddr, txFee, opRet)
 	if err != nil {
-		// TODO
+		return nil, fmt.Errorf("%w (PutAnchor)", err)
 	}
 	signedTxReader, err := b.SignRawTransactionWithWallet(ctx, rawTx)
 	if err != nil {
-		// TODO
+		return nil, fmt.Errorf("%w (PutAnchor)", err)
 	}
 	signedTx, err := ParseSignRawTransactionWithWallet(signedTxReader)
 	if err != nil {
-		// TODO
+		return nil, fmt.Errorf("%w (PutAnchor)", err)
 	}
 	sentTxid, err := b.SendRawTransaction(ctx, signedTx)
 	if err != nil {
-		// TODO
+		return nil, fmt.Errorf("%w (PutAnchor)", err)
 	}
 
 	return sentTxid, nil
 }
 
+func ParseTransactionConfirmations(txJSON *bytes.Buffer) (uint, error) {
+	panic("not implemented")
+}
+
+func ParseTransactionTime(txJSON *bytes.Buffer) (time.Time, error) {
+	panic("not implemented")
+}
+
+func ParseTransactionRawHex(txJSON *bytes.Buffer) ([]byte, error) {
+	panic("not implemented")
+}
+
+// DecodeRawTransaction returns a raw transaction in JSON.
+//
+// Possible errors: ErrTxDecodeFailed|ErrWalletNotLoaded|ErrUnexpectedExitCode|ErrFailedToExec
+func (b *BitcoinCLI) DecodeRawTransaction(ctx context.Context, txdata []byte) (*bytes.Buffer, error) {
+	stdout, stderr, err := b.run(ctx, []string{cmdDecodeRawTransaction, hex.EncodeToString(txdata)})
+	if err != nil {
+		if errors.Is(err, ErrDryRun) {
+			return nil, err
+		}
+		return nil, fmt.Errorf("%w (stdout=%s, stderr=%s)", err, stdout.String(), stderr.String())
+	}
+	return stdout, nil
+}
+
+func ParseRawTransactionOpReturn(rawTxJSON *bytes.Buffer) ([]byte, error) {
+	panic("not implemented")
+}
+
 func (b *BitcoinCLI) GetAnchor(ctx context.Context, btctx []byte) (*model.AnchorRecord, error) {
-	panic("work in progress")
 	// Check the bitcoind.
 	err := b.Ping(ctx)
 	if err != nil {
-		// TODO
+		return nil, fmt.Errorf("%w (GetAnchor)", err)
 	}
 
-	// Parse the given transaction.
-	// TODO: get timestamp, confirmations, address, and OP_RETURN
+	// Parse the given transaction and get data.
 	tx, err := b.GetTransaction(ctx, btctx)
 	if err != nil {
-		// TODO
+		return nil, fmt.Errorf("%w (GetAnchor)", err)
 	}
-	panic(tx)
+	tts, err := ParseTransactionTime(tx)
+	if err != nil {
+		return nil, fmt.Errorf("%w (GetAnchor)", err)
+	}
+	tcs, err := ParseTransactionConfirmations(tx)
+	if err != nil {
+		return nil, fmt.Errorf("%w (GetAnchor)", err)
+	}
+	tHex, err := ParseTransactionRawHex(tx)
+	if err != nil {
+		return nil, fmt.Errorf("%w (GetAnchor)", err)
+	}
+	rawTx, err := b.DecodeRawTransaction(ctx, tHex)
+	if err != nil {
+		return nil, fmt.Errorf("%w (GetAnchor)", err)
+	}
+	opRetSlice, err := ParseRawTransactionOpReturn(rawTx)
+	if err != nil {
+		return nil, fmt.Errorf("%w (GetAnchor)", err)
+	}
 
 	// Decode OP_RETURN.
-	var opRet [80]byte // TODO: set OP_RETURN
+	if len(opRetSlice) != 80 {
+		return nil, fmt.Errorf("%w (GetAnchor)", ErrInvalidOpReturn)
+	}
+	var opRet [80]byte
+	copy(opRet[0:80], opRetSlice[0:80])
 	a, err := model.DecodeOpReturn(opRet)
 	if err != nil {
-		// TODO
+		return nil, fmt.Errorf("%w (%v) (GetAnchor)", ErrInvalidOpReturn, err)
 	}
 
+	// This is not a complete AnchorRecord.
+	// Only data from the Bitcoin transaction is included.
 	r := model.AnchorRecord{
 		Anchor:           a,
 		BTCTransactionID: btctx,
-		// Timestamp: ,
-		// Confirmations: ,
-		// BTCAddr: ,
+		TransactionTime:  tts,
+		Confirmations:    tcs,
 	}
 	return &r, nil
 }
