@@ -250,7 +250,7 @@ func ParseTransactionReceived(txJSON *bytes.Buffer, recvAddr string) (string, er
 	if err := json.NewDecoder(txJSON).Decode(&val); err != nil {
 		return "", fmt.Errorf("%w (%v)", ErrFailedToDecode, err)
 	}
-	// Parse { ..., details: [ { "address": "abc", "category": "receive", "amount": 0.123 } ] }
+	// Parse { ..., "details": [ { "address": "abc", "category": "receive", "amount": 0.123 } ] }
 	details, ok := val["details"].([]interface{})
 	if !ok {
 		return "", fmt.Errorf("%w (root->details)", ErrFailedToDecode)
@@ -399,6 +399,7 @@ func (b *BitcoinCLI) XPrepareAnchor(txid []byte, btcAddr string) {
 	b.xBTCAddr = btcAddr
 }
 
+// PutAnchor anchors the given Anchor by sending a Bitcoin transaction and returns its transaction ID.
 func (b *BitcoinCLI) PutAnchor(ctx context.Context, a *model.Anchor) ([]byte, error) {
 	// Check the bitcoind.
 	err := b.Ping(ctx)
@@ -440,16 +441,51 @@ func (b *BitcoinCLI) PutAnchor(ctx context.Context, a *model.Anchor) ([]byte, er
 	return sentTxid, nil
 }
 
+// ParseTransactionConfirmations returns confirmations of the given transaction.
 func ParseTransactionConfirmations(txJSON *bytes.Buffer) (uint, error) {
-	panic("not implemented")
+	var val map[string]interface{}
+	if err := json.NewDecoder(txJSON).Decode(&val); err != nil {
+		return 0, fmt.Errorf("%w (%v)", ErrFailedToDecode, err)
+	}
+	// Parse { ..., "confirmations": 3, ... }
+	confs, ok := val["confirmations"].(uint)
+	if !ok {
+		return 0, fmt.Errorf("%w (root->confirmations)", ErrFailedToDecode)
+	}
+	return confs, nil
 }
 
+// ParseTransactionTime returns time of the given transaction.
 func ParseTransactionTime(txJSON *bytes.Buffer) (time.Time, error) {
-	panic("not implemented")
+	var val map[string]interface{}
+	if err := json.NewDecoder(txJSON).Decode(&val); err != nil {
+		return time.Time{}, fmt.Errorf("%w (%v)", ErrFailedToDecode, err)
+	}
+	// Parse { ..., "time": 1611334493, ... }
+	unixT, ok := val["time"].(int64)
+	if !ok {
+		return time.Time{}, fmt.Errorf("%w (root->time)", ErrFailedToDecode)
+	}
+	return time.Unix(unixT, 0), nil
 }
 
+// ParseTransactionRawHex returns raw data of the given transaction.
 func ParseTransactionRawHex(txJSON *bytes.Buffer) ([]byte, error) {
-	panic("not implemented")
+	var val map[string]interface{}
+	if err := json.NewDecoder(txJSON).Decode(&val); err != nil {
+		return nil, fmt.Errorf("%w (%v)", ErrFailedToDecode, err)
+	}
+	// Parse { ..., "hex": "12345" }
+	hexStr, ok := val["hex"].(string)
+	if !ok {
+		return nil, fmt.Errorf("%w (root->hex)", ErrFailedToDecode)
+	}
+	bs, err := hex.DecodeString(hexStr)
+	if err != nil || len(bs) == 0 {
+		return nil, fmt.Errorf("%w (%+v)", ErrFailedToDecode, hexStr)
+	}
+	return bs, nil
+
 }
 
 // DecodeRawTransaction returns a raw transaction in JSON.
@@ -466,10 +502,46 @@ func (b *BitcoinCLI) DecodeRawTransaction(ctx context.Context, txdata []byte) (*
 	return stdout, nil
 }
 
+// ParseRawTransactionOpReturn returns OP_RETURN value of the given raw transaction.
 func ParseRawTransactionOpReturn(rawTxJSON *bytes.Buffer) ([]byte, error) {
-	panic("not implemented")
+	var val map[string]interface{}
+	if err := json.NewDecoder(rawTxJSON).Decode(&val); err != nil {
+		return nil, fmt.Errorf("%w (%v)", ErrFailedToDecode, err)
+	}
+	// Parse { ..., "vout": [ { "scriptPubKey": { "asm": "OP_RETURN 12345", ... }, ... } ] }
+	vouts, ok := val["vout"].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("%w (root->vout)", ErrFailedToDecode)
+	}
+	for idx, vout := range vouts {
+		o, ok := vout.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("%w (root->vout[%d])", ErrFailedToDecode, idx)
+		}
+		// scriptPubKey ?
+		spk, ok := o["scriptPubkey"].(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("%w (root->vout->scriptPubKey)", ErrFailedToDecode)
+		}
+		// scriptPubKey.asm ?
+		asm, ok := spk["asm"].(string)
+		if !ok {
+			return nil, fmt.Errorf("%w (root->vout->scriptPubKey->asm)", ErrFailedToDecode)
+		}
+		// asm == "OP_RETURN 12345" ? pass : continue
+		if !strings.HasPrefix(asm, "OP_RETURN ") {
+			continue
+		}
+		opRet, err := hex.DecodeString(strings.TrimPrefix(asm, "OP_RETURN "))
+		if err != nil {
+			return nil, fmt.Errorf("%w (asm)", ErrFailedToDecode)
+		}
+		return opRet, nil
+	}
+	return nil, fmt.Errorf("%w (not found)", ErrFailedToDecode)
 }
 
+// GetAnchor returns an AnchorRecord by searching the given Bitcoin transaction ID and parsing its data.
 func (b *BitcoinCLI) GetAnchor(ctx context.Context, btctx []byte) (*model.AnchorRecord, error) {
 	// Check the bitcoind.
 	err := b.Ping(ctx)
