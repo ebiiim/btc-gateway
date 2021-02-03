@@ -46,6 +46,7 @@ const (
 	exitInvalidTXID     = 5
 	exitWrongSizeTXID   = 8
 	exitWalletNotLoaded = 18
+	exitTxAlreadyExists = 27
 )
 
 // Errors
@@ -60,6 +61,7 @@ var (
 	ErrWalletNotLoaded      = errors.New("ErrWalletNotLoaded")
 	ErrInvalidFee           = errors.New("ErrInvalidFee")
 	ErrFailedToSign         = errors.New("ErrFailedToSign")
+	ErrTxAlreadyExists      = errors.New("ErrTxAlreadyExists")
 )
 
 // BitcoinCLI contains parameters for bitcoin-cli.
@@ -170,6 +172,8 @@ func (b *BitcoinCLI) run(ctx context.Context, args []string) (*bytes.Buffer, *by
 			return &stdout, &stderr, ErrInvalidTransactionID
 		case exitWalletNotLoaded:
 			return &stdout, &stderr, ErrWalletNotLoaded
+		case exitTxAlreadyExists:
+			return &stdout, &stderr, ErrTxAlreadyExists
 		default:
 			return &stdout, &stderr, fmt.Errorf("%w (%v)", ErrUnexpectedExitCode, ec)
 		}
@@ -234,19 +238,25 @@ func calcFee(bal string, feeSatoshi uint) (string, error) {
 }
 
 // ParseTransactionReceived returns received amount of the given Bitcoin address.
-func (b *BitcoinCLI) ParseTransactionReceived(txJSON *bytes.Buffer, recvAddr string) (string, error) {
+// Only counts the first received amount of the given address.
+// Returns error if no received.
+func ParseTransactionReceived(txJSON *bytes.Buffer, recvAddr string) (string, error) {
 	var val map[string]interface{}
 	if err := json.NewDecoder(txJSON).Decode(&val); err != nil {
 		return "", fmt.Errorf("%w (%v)", ErrFailedToDecode, err)
 	}
 	// Parse { ..., details: [ { "address": "abc", "category": "receive", "amount": 0.123 } ] }
-	details, ok := val["details"].([]map[string]interface{})
+	details, ok := val["details"].([]interface{})
 	if !ok {
 		return "", fmt.Errorf("%w (root->details)", ErrFailedToDecode)
 	}
-	for _, d := range details {
+	for idx, d := range details {
+		dd, ok := d.(map[string]interface{})
+		if !ok {
+			return "", fmt.Errorf("%w (root->details[%d])", ErrFailedToDecode, idx)
+		}
 		// category == receive ? pass : continue
-		cat, ok := d["categoty"].(string)
+		cat, ok := dd["category"].(string)
 		if !ok {
 			return "", fmt.Errorf("%w (root->details->category)", ErrFailedToDecode)
 		}
@@ -254,7 +264,7 @@ func (b *BitcoinCLI) ParseTransactionReceived(txJSON *bytes.Buffer, recvAddr str
 			continue
 		}
 		// address == ${recvAddr} ? pass : continue
-		addr, ok := d["address"].(string)
+		addr, ok := dd["address"].(string)
 		if !ok {
 			return "", fmt.Errorf("%w (root->details->address)", ErrFailedToDecode)
 		}
@@ -262,7 +272,7 @@ func (b *BitcoinCLI) ParseTransactionReceived(txJSON *bytes.Buffer, recvAddr str
 			continue
 		}
 		// amount is float ? return : ErrFailedToDecode
-		amo, ok := d["amount"].(float64)
+		amo, ok := dd["amount"].(float64)
 		if !ok {
 			return "", fmt.Errorf("%w (root->details->amount)", ErrFailedToDecode)
 		}
@@ -322,7 +332,7 @@ func (b *BitcoinCLI) SignRawTransactionWithWallet(ctx context.Context, rawTx []b
 }
 
 // ParseSignRawTransactionWithWallet parses the response from b.SignRawTransactionWithWallet.
-func (b *BitcoinCLI) ParseSignRawTransactionWithWallet(stdout io.Reader) ([]byte, error) {
+func ParseSignRawTransactionWithWallet(stdout io.Reader) ([]byte, error) {
 	var val map[string]interface{}
 	if err := json.NewDecoder(stdout).Decode(&val); err != nil {
 		return nil, fmt.Errorf("%w (%v)", ErrFailedToDecode, err)
@@ -349,8 +359,7 @@ func (b *BitcoinCLI) ParseSignRawTransactionWithWallet(stdout io.Reader) ([]byte
 
 // SendRawTransaction sends the given signed raw transaction and returns transaction ID.
 //
-// Possible errors: ErrUnexpectedExitCode|ErrFailedToExec
-// TODO: Handle more errors.
+// Possible errors: ErrTxAlreadyExists|ErrUnexpectedExitCode|ErrFailedToExec
 func (b *BitcoinCLI) SendRawTransaction(ctx context.Context, signedRawTx []byte) ([]byte, error) {
 	stdout, stderr, err := b.run(ctx, []string{cmdSendRawTransaction, hex.EncodeToString(signedRawTx)})
 	if err != nil {
@@ -398,7 +407,7 @@ func (b *BitcoinCLI) PutAnchor(ctx context.Context, a *model.Anchor) ([]byte, er
 	if err != nil {
 		// TODO
 	}
-	balance, err := b.ParseTransactionReceived(fromTx, b.xBTCAddr)
+	balance, err := ParseTransactionReceived(fromTx, b.xBTCAddr)
 	if err != nil {
 		// TODO
 	}
@@ -416,7 +425,7 @@ func (b *BitcoinCLI) PutAnchor(ctx context.Context, a *model.Anchor) ([]byte, er
 	if err != nil {
 		// TODO
 	}
-	signedTx, err := b.ParseSignRawTransactionWithWallet(signedTxReader)
+	signedTx, err := ParseSignRawTransactionWithWallet(signedTxReader)
 	if err != nil {
 		// TODO
 	}
