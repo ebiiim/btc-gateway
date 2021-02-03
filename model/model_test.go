@@ -179,18 +179,17 @@ func TestNewAnchorRecord(t *testing.T) {
 		btctx       []byte
 		ts          time.Time
 		conf        uint
-		btcaddr     string
 		bbc1domName string
 		note        string
 		want        *model.AnchorRecord
 	}{
-		{"normal", normalAnchor, btctx1, ts1, 1500, btcaddr1, domName1, note1, &model.AnchorRecord{normalAnchor, btctx1, ts1, 1500, btcaddr1, domName1, note1}},
+		{"normal", normalAnchor, btctx1, ts1, 1500, domName1, note1, &model.AnchorRecord{normalAnchor, btctx1, ts1, 1500, domName1, note1}},
 	}
 	for _, c := range cases {
 		c := c
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			r := model.NewAnchorRecord(c.anchor, c.btctx, c.ts, c.conf, c.btcaddr, c.bbc1domName, c.note)
+			r := model.NewAnchorRecord(c.anchor, c.btctx, c.ts, c.conf, c.bbc1domName, c.note)
 			if !reflect.DeepEqual(r, c.want) {
 				t.Errorf("got %+v but want %+v", r, c.want)
 			}
