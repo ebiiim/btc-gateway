@@ -1,6 +1,9 @@
 package model
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 // AnchorRecord contains an Anchor and a Bitcoin transaction ID in which the Anchor is embedded.
 // Some additional information from the Bitcoin transaction are also included.
@@ -16,6 +19,22 @@ type AnchorRecord struct {
 	// Optional data NOT included in Bitcoin.
 	BBc1DomainName string
 	Note           string
+}
+
+// String returns a human-readable expression for the AnchorRecord.
+func (r *AnchorRecord) String() string {
+	var s string
+	s += "==========AnchorRecord==========\n"
+	s += r.Anchor.String()
+	s += "-------------Record-------------\n"
+	s += fmt.Sprintf("   BTCTransactionID: %x\n", r.BTCTransactionID)
+	s += fmt.Sprintf("    TransactionTime: %d | %s | 0x%016x\n", r.TransactionTime.Unix(), r.TransactionTime, r.TransactionTime)
+	s += fmt.Sprintf("      Confirmations: %d\n", r.Confirmations)
+	s += "------------Optional------------\n"
+	s += fmt.Sprintf("     BBc1DomainName: %s\n", r.BBc1DomainName)
+	s += fmt.Sprintf("               Note: %s\n", r.Note)
+	s += "================================\n"
+	return s
 }
 
 // NewAnchorRecord initializes an AnchorRecord.

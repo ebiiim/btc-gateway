@@ -38,6 +38,19 @@ type Anchor struct {
 	BBc1TransactionID [32]byte
 }
 
+// String returns a human-readable expression for the Anchor.
+func (a *Anchor) String() string {
+	var s string
+	s += "-------------Anchor-------------\n"
+	s += fmt.Sprintf("            Version: %d | 0x%02x\n", a.Version, a.Version)
+	s += fmt.Sprintf("             BTCNet: %d | %s | 0x%02x\n", a.BTCNet, a.BTCNet, uint8(a.BTCNet))
+	s += fmt.Sprintf("          Timestamp: %d | %s | 0x%016x\n", a.Timestamp.Unix(), a.Timestamp, a.Timestamp.Unix())
+	s += fmt.Sprintf("       BBc1DomainID: %x\n", a.BBc1DomainID)
+	s += fmt.Sprintf("  BBc1TransactionID: %x\n", a.BBc1TransactionID)
+	s += fmt.Sprintf("          OP_RETURN: %x\n", EncodeOpReturn(a))
+	return s
+}
+
 // validAnchorVersions contains valid anchor versions.
 var validAnchorVersions map[uint8]struct{} = map[uint8]struct{}{
 	1:   {},
