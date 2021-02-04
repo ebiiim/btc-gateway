@@ -53,6 +53,7 @@ func TestCalcFee(t *testing.T) {
 		{"normal", recvAmount1, 20_000, "0.01138624"},
 		{"big_fee", recvAmount1, 123_456, "0.01035168"},
 		{"big_amo", "12345.12345678", 20_000, "12345.12325678"},
+		{"just", "0.00020000", 20_000, "0.00000000"},
 	}
 	for _, c := range cases {
 		c := c
@@ -65,6 +66,30 @@ func TestCalcFee(t *testing.T) {
 			}
 			if bal != c.result {
 				t.Errorf("got %s but want %s", bal, c.result)
+			}
+		})
+	}
+}
+
+func TestCalcFee_Error(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name       string
+		bal        string
+		feeSatoshi uint
+		wantErr    error
+	}{
+		{"minus", "0.00020000", 20_001, btc.ErrBalanceNotEnough},
+		{"zero", "0.00000000", 1, btc.ErrBalanceNotEnough},
+		{"invalid", "12345.1a345678", 20_000, btc.ErrFailedToDecode},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			_, err := btc.CalcFee(c.bal, c.feeSatoshi)
+			if !errors.Is(err, c.wantErr) {
+				t.Errorf("got %+v but want %+v", err, c.wantErr)
 			}
 		})
 	}

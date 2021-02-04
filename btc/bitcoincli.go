@@ -65,6 +65,7 @@ var (
 	ErrFailedToSign         = errors.New("ErrFailedToSign")
 	ErrTxDecodeFailed       = errors.New("ErrTxDecodeFailed")
 	ErrTxAlreadyExists      = errors.New("ErrTxAlreadyExists")
+	ErrBalanceNotEnough     = errors.New("ErrBalanceNotEnough")
 )
 
 // BitcoinCLI contains parameters for bitcoin-cli.
@@ -79,7 +80,7 @@ type BitcoinCLI struct {
 	rpcUser     string
 	rpcPassword string
 
-	// Set by XPrepareAnchor and used by (PutAnchor|GetAnchor) only.
+	// Set by XPrepareAnchor and used by PutAnchor only.
 	xBTCAddr       string
 	xTransactionID []byte
 }
@@ -232,13 +233,17 @@ func (b *BitcoinCLI) GetTransaction(ctx context.Context, txid []byte) (*bytes.Bu
 	return stdout, nil
 }
 
+// Possible errors: ErrFailedToDecode|ErrBalanceNotEnough
 func calcFee(bal string, feeSatoshi uint) (string, error) {
 	f64Bal, err := strconv.ParseFloat(bal, 64)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%w (%+v)", ErrFailedToDecode, err)
 	}
 	var rate float64 = 100_000_000
-	f64Bal = float64(uint(f64Bal*rate)-feeSatoshi) / rate
+	f64Bal = float64(int(f64Bal*rate)-int(feeSatoshi)) / rate
+	if f64Bal < 0 {
+		return "", fmt.Errorf("%w (%.8f)", ErrBalanceNotEnough, f64Bal)
+	}
 	return fmt.Sprintf("%.8f", f64Bal), err
 }
 
@@ -415,7 +420,6 @@ func (b *BitcoinCLI) PutAnchor(ctx context.Context, a *model.Anchor) ([]byte, er
 	if err != nil {
 		return nil, fmt.Errorf("%w (PutAnchor)", err)
 	}
-
 	// Encode OP_RETURN.
 	tmp := model.EncodeOpReturn(a)
 	opRet := tmp[:]
