@@ -88,7 +88,7 @@ func Test_Local_BitcoinCLI_CreateRawTransactionForAnchor(t *testing.T) {
 	}
 }
 
-func Test_Local_BitcoinCLI_SignRawTransactionWithWallet_Err_AlreadySpent(t *testing.T) {
+func Test_Local_BitcoinCLI_SignRawTransactionWithWallet_Error_FailedToSign(t *testing.T) {
 	const (
 		rawTx = lRawTx1
 	)
@@ -104,14 +104,14 @@ func Test_Local_BitcoinCLI_SignRawTransactionWithWallet_Err_AlreadySpent(t *test
 	}
 }
 
-func Test_Local_BitcoinCLI_SendRawTransaction_Err_AlreadyExists(t *testing.T) {
+func Test_Local_BitcoinCLI_SendRawTransaction_Error_AlreadyExistsORAlreadySpent(t *testing.T) {
 	const (
 		signedTx = lSignedTx1
 	)
 	b, ctx, cf := prepCLI(t)
 	defer cf()
 	_, err := b.SendRawTransaction(ctx, mustDecodeHexString(signedTx))
-	if !errors.Is(err, btc.ErrTxAlreadyExists) {
+	if !(errors.Is(err, btc.ErrTxAlreadyExists) || errors.Is(err, btc.ErrTxAlreadySpent)) {
 		t.Errorf("want %+v but got %+v", btc.ErrTxAlreadyExists, err)
 	}
 }

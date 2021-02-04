@@ -47,6 +47,7 @@ const (
 	exitWrongSizeTXID   = 8
 	exitWalletNotLoaded = 18
 	exitTxDecodeFailed  = 22
+	exitTxAlreadySpent  = 25
 	exitTxAlreadyExists = 27
 )
 
@@ -64,8 +65,10 @@ var (
 	ErrInvalidFee           = errors.New("ErrInvalidFee")
 	ErrFailedToSign         = errors.New("ErrFailedToSign")
 	ErrTxDecodeFailed       = errors.New("ErrTxDecodeFailed")
+	ErrTxAlreadySpent       = errors.New("ErrTxAlreadySpent")
 	ErrTxAlreadyExists      = errors.New("ErrTxAlreadyExists")
-	ErrBalanceNotEnough     = errors.New("ErrBalanceNotEnough")
+	ErrNotEnoughBalance     = errors.New("ErrNotEnoughBalance")
+	ErrNotEnoughConfirm     = errors.New("ErrNotEnoughConfirm")
 )
 
 // BitcoinCLI contains parameters for bitcoin-cli.
@@ -156,6 +159,7 @@ var dryRun = false
 // run returns (stdout, stderr, error).
 func (b *BitcoinCLI) run(ctx context.Context, args []string) (*bytes.Buffer, *bytes.Buffer, error) {
 	args = append(b.connArgs(), args...)
+	// log.Printf("[Trace] %s %s\n", b.binPath, strings.Join(args, " "))
 	if dryRun {
 		return nil, nil, fmt.Errorf("%w%s %s", ErrDryRun, b.binPath, strings.Join(args, " "))
 	}
@@ -178,6 +182,8 @@ func (b *BitcoinCLI) run(ctx context.Context, args []string) (*bytes.Buffer, *by
 			return &stdout, &stderr, ErrWalletNotLoaded
 		case exitTxDecodeFailed:
 			return &stdout, &stderr, ErrTxDecodeFailed
+		case exitTxAlreadySpent:
+			return &stdout, &stderr, ErrTxAlreadySpent
 		case exitTxAlreadyExists:
 			return &stdout, &stderr, ErrTxAlreadyExists
 		default:
@@ -233,7 +239,7 @@ func (b *BitcoinCLI) GetTransaction(ctx context.Context, txid []byte) (*bytes.Bu
 	return stdout, nil
 }
 
-// Possible errors: ErrFailedToDecode|ErrBalanceNotEnough
+// Possible errors: ErrFailedToDecode|ErrNotEnoughBalance
 func calcFee(bal string, feeSatoshi uint) (string, error) {
 	f64Bal, err := strconv.ParseFloat(bal, 64)
 	if err != nil {
@@ -242,7 +248,7 @@ func calcFee(bal string, feeSatoshi uint) (string, error) {
 	var rate float64 = 100_000_000
 	f64Bal = float64(int(f64Bal*rate)-int(feeSatoshi)) / rate
 	if f64Bal < 0 {
-		return "", fmt.Errorf("%w (%.8f)", ErrBalanceNotEnough, f64Bal)
+		return "", fmt.Errorf("%w (%.8f)", ErrNotEnoughBalance, f64Bal)
 	}
 	return fmt.Sprintf("%.8f", f64Bal), err
 }
@@ -369,7 +375,7 @@ func ParseSignRawTransactionWithWallet(stdout io.Reader) ([]byte, error) {
 
 // SendRawTransaction sends the given signed raw transaction and returns transaction ID.
 //
-// Possible errors: ErrTxAlreadyExists|ErrUnexpectedExitCode|ErrFailedToExec
+// Possible errors: ErrTxAlreadySpent|ErrTxAlreadyExists|ErrUnexpectedExitCode|ErrFailedToExec
 func (b *BitcoinCLI) SendRawTransaction(ctx context.Context, signedRawTx []byte) ([]byte, error) {
 	stdout, stderr, err := b.run(ctx, []string{cmdSendRawTransaction, hex.EncodeToString(signedRawTx)})
 	if err != nil {
@@ -404,6 +410,10 @@ func (b *BitcoinCLI) XPrepareAnchor(txid []byte, btcAddr string) {
 	b.xBTCAddr = btcAddr
 }
 
+const (
+	leastConfirmationNeeded = 6
+)
+
 // PutAnchor anchors the given Anchor by sending a Bitcoin transaction and returns its transaction ID.
 func (b *BitcoinCLI) PutAnchor(ctx context.Context, a *model.Anchor) ([]byte, error) {
 	// Check the bitcoind.
@@ -411,15 +421,27 @@ func (b *BitcoinCLI) PutAnchor(ctx context.Context, a *model.Anchor) ([]byte, er
 	if err != nil {
 		return nil, fmt.Errorf("%w (PutAnchor)", err)
 	}
-	// Get UTXO balance.
+
+	// Get UTXO balance and check confirmations.
 	fromTx, err := b.GetTransaction(ctx, b.xTransactionID)
 	if err != nil {
 		return nil, fmt.Errorf("%w (PutAnchor)", err)
 	}
-	balance, err := ParseTransactionReceived(fromTx, b.xBTCAddr)
+	var bufR, bufC bytes.Buffer
+	w := io.MultiWriter(&bufR, &bufC)
+	io.Copy(w, fromTx)
+	balance, err := ParseTransactionReceived(&bufR, b.xBTCAddr)
 	if err != nil {
 		return nil, fmt.Errorf("%w (PutAnchor)", err)
 	}
+	confs, err := ParseTransactionConfirmations(&bufC)
+	if err != nil {
+		return nil, fmt.Errorf("%w (GetAnchor)", err)
+	}
+	if confs < leastConfirmationNeeded {
+		return nil, fmt.Errorf("%w (confirmations=%d) (GetAnchor)", ErrNotEnoughConfirm, confs)
+	}
+
 	// Encode OP_RETURN.
 	tmp := model.EncodeOpReturn(a)
 	opRet := tmp[:]

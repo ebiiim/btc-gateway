@@ -79,8 +79,8 @@ func TestCalcFee_Error(t *testing.T) {
 		feeSatoshi uint
 		wantErr    error
 	}{
-		{"minus", "0.00020000", 20_001, btc.ErrBalanceNotEnough},
-		{"zero", "0.00000000", 1, btc.ErrBalanceNotEnough},
+		{"minus", "0.00020000", 20_001, btc.ErrNotEnoughBalance},
+		{"zero", "0.00000000", 1, btc.ErrNotEnoughBalance},
 		{"invalid", "12345.1a345678", 20_000, btc.ErrFailedToDecode},
 	}
 	for _, c := range cases {
