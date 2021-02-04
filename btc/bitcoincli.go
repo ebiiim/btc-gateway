@@ -263,7 +263,7 @@ func ParseTransactionReceived(txJSON *bytes.Buffer, recvAddr string) (string, er
 		// category == receive ? pass : continue
 		cat, ok := dd["category"].(string)
 		if !ok {
-			return "", fmt.Errorf("%w (root->details->category)", ErrFailedToDecode)
+			return "", fmt.Errorf("%w (root->details[%d]->category)", ErrFailedToDecode, idx)
 		}
 		if cat != "receive" {
 			continue
@@ -271,7 +271,7 @@ func ParseTransactionReceived(txJSON *bytes.Buffer, recvAddr string) (string, er
 		// address == ${recvAddr} ? pass : continue
 		addr, ok := dd["address"].(string)
 		if !ok {
-			return "", fmt.Errorf("%w (root->details->address)", ErrFailedToDecode)
+			return "", fmt.Errorf("%w (root->details[%d]->address)", ErrFailedToDecode, idx)
 		}
 		if addr != recvAddr {
 			continue
@@ -279,7 +279,7 @@ func ParseTransactionReceived(txJSON *bytes.Buffer, recvAddr string) (string, er
 		// amount is float ? return : ErrFailedToDecode
 		amo, ok := dd["amount"].(float64)
 		if !ok {
-			return "", fmt.Errorf("%w (root->details->amount)", ErrFailedToDecode)
+			return "", fmt.Errorf("%w (root->details[%d]->amount)", ErrFailedToDecode, idx)
 		}
 		return fmt.Sprintf("%.8f", amo), nil
 	}
@@ -448,11 +448,11 @@ func ParseTransactionConfirmations(txJSON *bytes.Buffer) (uint, error) {
 		return 0, fmt.Errorf("%w (%v)", ErrFailedToDecode, err)
 	}
 	// Parse { ..., "confirmations": 3, ... }
-	confs, ok := val["confirmations"].(uint)
+	confs, ok := val["confirmations"].(float64)
 	if !ok {
 		return 0, fmt.Errorf("%w (root->confirmations)", ErrFailedToDecode)
 	}
-	return confs, nil
+	return uint(confs), nil
 }
 
 // ParseTransactionTime returns time of the given transaction.
@@ -462,11 +462,11 @@ func ParseTransactionTime(txJSON *bytes.Buffer) (time.Time, error) {
 		return time.Time{}, fmt.Errorf("%w (%v)", ErrFailedToDecode, err)
 	}
 	// Parse { ..., "time": 1611334493, ... }
-	unixT, ok := val["time"].(int64)
+	unixT, ok := val["time"].(float64)
 	if !ok {
 		return time.Time{}, fmt.Errorf("%w (root->time)", ErrFailedToDecode)
 	}
-	return time.Unix(unixT, 0), nil
+	return time.Unix(int64(unixT), 0), nil
 }
 
 // ParseTransactionRawHex returns raw data of the given transaction.
@@ -519,14 +519,14 @@ func ParseRawTransactionOpReturn(rawTxJSON *bytes.Buffer) ([]byte, error) {
 			return nil, fmt.Errorf("%w (root->vout[%d])", ErrFailedToDecode, idx)
 		}
 		// scriptPubKey ?
-		spk, ok := o["scriptPubkey"].(map[string]interface{})
+		spk, ok := o["scriptPubKey"].(map[string]interface{})
 		if !ok {
-			return nil, fmt.Errorf("%w (root->vout->scriptPubKey)", ErrFailedToDecode)
+			return nil, fmt.Errorf("%w (root->vout[%d]->scriptPubKey)", ErrFailedToDecode, idx)
 		}
 		// scriptPubKey.asm ?
 		asm, ok := spk["asm"].(string)
 		if !ok {
-			return nil, fmt.Errorf("%w (root->vout->scriptPubKey->asm)", ErrFailedToDecode)
+			return nil, fmt.Errorf("%w (root->vout[%d]->scriptPubKey->asm)", ErrFailedToDecode, idx)
 		}
 		// asm == "OP_RETURN 12345" ? pass : continue
 		if !strings.HasPrefix(asm, "OP_RETURN ") {
@@ -554,15 +554,18 @@ func (b *BitcoinCLI) GetAnchor(ctx context.Context, btctx []byte) (*model.Anchor
 	if err != nil {
 		return nil, fmt.Errorf("%w (GetAnchor)", err)
 	}
-	tts, err := ParseTransactionTime(tx)
+	var bufT, bufC, bufH bytes.Buffer
+	w := io.MultiWriter(&bufT, &bufC, &bufH)
+	io.Copy(w, tx)
+	tts, err := ParseTransactionTime(&bufT)
 	if err != nil {
 		return nil, fmt.Errorf("%w (GetAnchor)", err)
 	}
-	tcs, err := ParseTransactionConfirmations(tx)
+	tcs, err := ParseTransactionConfirmations(&bufC)
 	if err != nil {
 		return nil, fmt.Errorf("%w (GetAnchor)", err)
 	}
-	tHex, err := ParseTransactionRawHex(tx)
+	tHex, err := ParseTransactionRawHex(&bufH)
 	if err != nil {
 		return nil, fmt.Errorf("%w (GetAnchor)", err)
 	}

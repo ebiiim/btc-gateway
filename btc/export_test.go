@@ -9,6 +9,7 @@ import (
 
 func DryRun(b bool)                                       { dryRun = b }
 func CalcFee(bal string, feeSatoshi uint) (string, error) { return calcFee(bal, feeSatoshi) }
+func RemoveCRLF(buf *bytes.Buffer) *bytes.Buffer          { return removeCRLF(buf) }
 func (b *BitcoinCLI) BinPath() string                     { return b.binPath }
 func (b *BitcoinCLI) BTCNet() model.BTCNet                { return b.btcNet }
 func (b *BitcoinCLI) RPCAddr() string                     { return b.rpcAddr }

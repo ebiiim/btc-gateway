@@ -3,8 +3,13 @@
 package btc_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
+	"errors"
+	"io"
+	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -13,17 +18,17 @@ import (
 )
 
 const (
-	path = "../bitcoin-cli" // Put bitcoin-cli in project root.
-	net  = model.BTCTestnet3
-	addr = ""
-	port = ""
-	user = ""
-	pw   = ""
+	lPath = "../bitcoin-cli" // Put bitcoin-cli in project root.
+	lNet  = model.BTCTestnet3
+	lAddr = ""
+	lPort = ""
+	lUser = ""
+	lPW   = ""
 )
 
 func prepCLI(t *testing.T) (*btc.BitcoinCLI, context.Context, context.CancelFunc) {
 	t.Helper()
-	b := btc.NewBitcoinCLI(path, net, addr, port, user, pw)
+	b := btc.NewBitcoinCLI(lPath, lNet, lAddr, lPort, lUser, lPW)
 	ctx := context.Background()
 	ctx, cancelFunc := context.WithTimeout(ctx, 5*time.Second)
 	return b, ctx, cancelFunc
@@ -47,14 +52,27 @@ func TestGetBalance(t *testing.T) {
 	t.Log(bal)
 }
 
-func TestCreateRawTransactionForAnchor(t *testing.T) {
+const (
+	lTxid1     = "c7ace9d33c00b870e183f7dc929d3887efe257317a0d24810b2ee91fd08c6535"
+	lTxid2     = txid1
+	lRecvAddr1 = recvAddr1
+	lUnspent1  = "0.01168624"
+	lFee1      = 10000
+	lOpRet1    = opRet1
+	lRawTx1    = rawTx1
+	lSignedTx1 = signedRawTx1
+	lDecRawTx1 = decRawTx1
+	lGetTx1    = getTx1
+)
+
+func Test_Local_BitcoinCLI_CreateRawTransactionForAnchor(t *testing.T) {
 	const (
-		txid     = "c7ace9d33c00b870e183f7dc929d3887efe257317a0d24810b2ee91fd08c6535"
-		recvAddr = "tb1qhexc7d0fzex7lrzw3l0j2dmvhgegt02ckfdzjr"
-		unspent  = "0.01168624"
-		fee      = 10000
-		opRet    = "7468697320697320612070656e0a" // "this is a pen"
-		want     = "020000000135658cd01fe92e0b81240d7a3157e2ef87389d92dcf783e170b8003cd3e9acc70000000000ffffffff02e0ad110000000000160014be4d8f35e9164def8c4e8fdf25376cba3285bd580000000000000000106a0e7468697320697320612070656e0a00000000"
+		txid     = lTxid1
+		recvAddr = lRecvAddr1
+		unspent  = lUnspent1
+		fee      = lFee1
+		opRet    = lOpRet1
+		want     = lRawTx1
 	)
 	b, ctx, cf := prepCLI(t)
 	defer cf()
@@ -67,5 +85,97 @@ func TestCreateRawTransactionForAnchor(t *testing.T) {
 	}
 	if got := hex.EncodeToString(bs); got != want {
 		t.Errorf("want %s but got %s", want, got)
+	}
+}
+
+func Test_Local_BitcoinCLI_SignRawTransactionWithWallet_Err_AlreadySpent(t *testing.T) {
+	const (
+		rawTx = lRawTx1
+	)
+	b, ctx, cf := prepCLI(t)
+	defer cf()
+	buf, err := b.SignRawTransactionWithWallet(ctx, mustDecodeHexString(rawTx))
+	if err != nil {
+		t.Error(err)
+		t.Skip()
+	}
+	if _, err := btc.ParseSignRawTransactionWithWallet(buf); !errors.Is(err, btc.ErrFailedToSign) {
+		t.Errorf("want %+v but got %+v", btc.ErrFailedToSign, err)
+	}
+}
+
+func Test_Local_BitcoinCLI_SendRawTransaction_Err_AlreadyExists(t *testing.T) {
+	const (
+		signedTx = lSignedTx1
+	)
+	b, ctx, cf := prepCLI(t)
+	defer cf()
+	_, err := b.SendRawTransaction(ctx, mustDecodeHexString(signedTx))
+	if !errors.Is(err, btc.ErrTxAlreadyExists) {
+		t.Errorf("want %+v but got %+v", btc.ErrTxAlreadyExists, err)
+	}
+}
+
+func Test_Local_BitcoinCLI_DecodeRawTransaction(t *testing.T) {
+	const (
+		signedTx = lSignedTx1
+		decRawTx = lDecRawTx1
+	)
+	b, ctx, cf := prepCLI(t)
+	defer cf()
+	decoded, err := b.DecodeRawTransaction(ctx, mustDecodeHexString(signedTx))
+	if err != nil {
+		t.Error(err)
+		t.Skip()
+	}
+	decoded = btc.RemoveCRLF(decoded)
+	got := decoded.String()
+	got = strings.ReplaceAll(got, " ", "")
+	want := strings.ReplaceAll(decRawTx, " ", "")
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("want %+v but got %+v", want, got)
+	}
+}
+
+func Test_Local_BitcoinCLI_GetTransaction(t *testing.T) {
+	const (
+		txid     = lTxid2
+		recvAddr = lRecvAddr1
+		wantTx   = lGetTx1
+	)
+	b, ctx, cf := prepCLI(t)
+	defer cf()
+	got, err := b.GetTransaction(ctx, mustDecodeHexString(txid))
+	if err != nil {
+		t.Error(err)
+		t.Skip()
+	}
+	want := bytes.NewBufferString(wantTx)
+
+	// The output changes so verify it by check specific fields.
+	var gt, wt, gc, wc, gh, wh, gr, wr bytes.Buffer
+	wg := io.MultiWriter(&gt, &gc, &gh, &gr)
+	ww := io.MultiWriter(&wt, &wc, &wh, &wr)
+	io.Copy(wg, got)
+	io.Copy(ww, want)
+	gotTime, err1 := btc.ParseTransactionTime(&gt)
+	wantTime, err2 := btc.ParseTransactionTime(&wt)
+	if err1 != nil || err2 != nil || gotTime != wantTime {
+		t.Errorf("wrong time got=%+v (err=%+v) want=%+v (err=%+v)", gotTime, err1, wantTime, err2)
+	}
+	gotConfs, err1 := btc.ParseTransactionConfirmations(&gc)
+	wantConfs, err2 := btc.ParseTransactionConfirmations(&wc)
+	if err1 != nil || err2 != nil || gotConfs < wantConfs {
+		t.Errorf("wrong confs got=%+v (err=%+v) want=%+v (err=%+v)", gotConfs, err1, wantConfs, err2)
+	}
+	gotHex, err1 := btc.ParseTransactionRawHex(&gh)
+	wantHex, err2 := btc.ParseTransactionRawHex(&wh)
+	if err1 != nil || err2 != nil || !reflect.DeepEqual(gotHex, wantHex) {
+		t.Errorf("wrong hex got=%+v (err=%+v) want=%+v (err=%+v)", gotHex, err1, wantHex, err2)
+	}
+	gotAmo, err1 := btc.ParseTransactionReceived(&gr, recvAddr)
+	wantAmo, err2 := btc.ParseTransactionReceived(&wr, recvAddr)
+	if err1 != nil || err2 != nil || gotAmo != wantAmo {
+		t.Errorf("wrong amount got=%+v (err=%+v) want=%+v (err=%+v)", gotAmo, err1, wantAmo, err2)
 	}
 }

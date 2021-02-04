@@ -8,10 +8,19 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/ebiiim/btc-gateway/btc"
 	"github.com/ebiiim/btc-gateway/model"
 )
+
+func mustDecodeHexString(s string) []byte {
+	p, err := hex.DecodeString(s)
+	if err != nil {
+		panic("mustDecodeHexString")
+	}
+	return p
+}
 
 const (
 	path1 = "/home/foo/bar/bitcoin-cli"
@@ -29,6 +38,8 @@ const (
 	signedOut2   = `{"hex": "020000000135658cd01fe92e0b81240d7a3157e2ef87389d92dcf783e170b8003cd3e9acc70000000000ffffffff02e0ad110000000000160014be4d8f35e9164def8c4e8fdf25376cba3285bd580000000000000000106a0e7468697320697320612070656e0a00000000", "complete": false, "errors": [{"txid": "c7ace9d33c00b870e183f7dc929d3887efe257317a0d24810b2ee91fd08c6535", "vout": 0, "witness": [], "scriptSig": "", "sequence": 4294967295, "error": "Input not found or already spent"}]}`
 	signedRawTx1 = "0200000000010135658cd01fe92e0b81240d7a3157e2ef87389d92dcf783e170b8003cd3e9acc70000000000ffffffff02e0ad110000000000160014be4d8f35e9164def8c4e8fdf25376cba3285bd580000000000000000106a0e7468697320697320612070656e0a0247304402207081f817c5cfe5579c44b770ce13fe8b4aff04a241a666e2ad8a6cdf2f88286e02202176b0ae03924adb869b4c17ae3ef1bee12ed0a0798e7673bfeeeb290d954eb501210201f52ea462e04534e2e5f9be72a4bddd6e5fe7a001bc8bdba8a8dad392222d5300000000"
 	getTx1       = `{"amount": 0.00000000, "fee": -0.00010000, "confirmations": 27320, "blockhash": "000000000000000ff93e985472a9e5d045ecbecb2f7c0c9785bc96a6273e6097", "blockheight": 1905423, "blockindex": 4, "blocktime": 1611334725, "txid": "57511f74c3836c0d4d62a6183fa54e600372e1aed5b5be2f78ef5b766a314a5d", "walletconflicts": [], "time": 1611334493, "timereceived": 1611334493, "bip125-replaceable": "no", "details": [{"address": "tb1qhexc7d0fzex7lrzw3l0j2dmvhgegt02ckfdzjr", "category": "send", "amount": -0.01158624, "label": "xxxxx", "vout": 0, "fee": -0.00010000, "abandoned": false}, {"category": "send", "amount": 0.00000000, "vout": 1, "fee": -0.00010000, "abandoned": false}, {"address": "tb1qhexc7d0fzex7lrzw3l0j2dmvhgegt02ckfdzjr", "category": "receive", "amount": 0.01158624, "label": "xxxxx", "vout": 0}], "hex": "0200000000010135658cd01fe92e0b81240d7a3157e2ef87389d92dcf783e170b8003cd3e9acc70000000000ffffffff02e0ad110000000000160014be4d8f35e9164def8c4e8fdf25376cba3285bd580000000000000000106a0e7468697320697320612070656e0a0247304402207081f817c5cfe5579c44b770ce13fe8b4aff04a241a666e2ad8a6cdf2f88286e02202176b0ae03924adb869b4c17ae3ef1bee12ed0a0798e7673bfeeeb290d954eb501210201f52ea462e04534e2e5f9be72a4bddd6e5fe7a001bc8bdba8a8dad392222d5300000000"}`
+	tx1Hex       = signedRawTx1
+	decRawTx1    = `{"txid": "57511f74c3836c0d4d62a6183fa54e600372e1aed5b5be2f78ef5b766a314a5d", "hash": "58f472dca084218182d6fce7d42d3e4ac56323e4f9b93966c2b5e9f9096e8db0", "version": 2, "size": 216, "vsize": 135, "weight": 537, "locktime": 0, "vin": [{"txid": "c7ace9d33c00b870e183f7dc929d3887efe257317a0d24810b2ee91fd08c6535", "vout": 0, "scriptSig": {"asm": "", "hex": ""}, "txinwitness": ["304402207081f817c5cfe5579c44b770ce13fe8b4aff04a241a666e2ad8a6cdf2f88286e02202176b0ae03924adb869b4c17ae3ef1bee12ed0a0798e7673bfeeeb290d954eb501", "0201f52ea462e04534e2e5f9be72a4bddd6e5fe7a001bc8bdba8a8dad392222d53"], "sequence": 4294967295}], "vout": [{"value": 0.01158624, "n": 0, "scriptPubKey": {"asm": "0 be4d8f35e9164def8c4e8fdf25376cba3285bd58", "hex": "0014be4d8f35e9164def8c4e8fdf25376cba3285bd58", "reqSigs": 1, "type": "witness_v0_keyhash", "addresses": ["tb1qhexc7d0fzex7lrzw3l0j2dmvhgegt02ckfdzjr"]}}, {"value": 0.00000000, "n": 1, "scriptPubKey": {"asm": "OP_RETURN 7468697320697320612070656e0a", "hex": "6a0e7468697320697320612070656e0a", "type": "nulldata"}}]}`
 )
 
 func TestCalcFee(t *testing.T) {
@@ -245,7 +256,7 @@ func TestBitcoinCLI_GetTransaction_DryRun(t *testing.T) {
 	}
 }
 
-func TestBitcoinCLI_ParseTransactionReceived(t *testing.T) {
+func TestParseTransactionReceived(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name         string
@@ -338,7 +349,7 @@ func TestBitcoinCLI_SignRawTransactionWithWallet_DryRun(t *testing.T) {
 	}
 }
 
-func TestBitcoinCLI_ParseSignRawTransactionWithWallet(t *testing.T) {
+func TestParseSignRawTransactionWithWallet(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name         string
@@ -365,7 +376,7 @@ func TestBitcoinCLI_ParseSignRawTransactionWithWallet(t *testing.T) {
 	}
 }
 
-func TestBitcoinCLI_ParseSignRawTransactionWithWallet_Error(t *testing.T) {
+func TestParseSignRawTransactionWithWallet_Error(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name         string
@@ -415,6 +426,140 @@ func TestBitcoinCLI_SendRawTransaction_DryRun(t *testing.T) {
 			}
 			if err.Error() != c.fullcommand {
 				t.Errorf("got %+v but want %+v", err.Error(), c.fullcommand)
+			}
+		})
+	}
+}
+
+func TestParseTransactionConfirmations(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name      string
+		txOut     string
+		wantConfs uint
+	}{
+		{"normal", getTx1, 27320},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			buf := bytes.NewBufferString(c.txOut)
+			confs, err := btc.ParseTransactionConfirmations(buf)
+			if err != nil {
+				t.Errorf("failed to parse %+v", err)
+				t.Skip()
+			}
+			if confs != c.wantConfs {
+				t.Errorf("got %+v but want %+v", confs, c.wantConfs)
+			}
+		})
+	}
+}
+
+func TestParseTransactionTime(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name  string
+		txOut string
+		want  time.Time
+	}{
+		{"normal", getTx1, time.Unix(1611334493, 0)},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			buf := bytes.NewBufferString(c.txOut)
+			got, err := btc.ParseTransactionTime(buf)
+			if err != nil {
+				t.Errorf("failed to parse %+v", err)
+				t.Skip()
+			}
+			if got != c.want {
+				t.Errorf("got %+v but want %+v", got, c.want)
+			}
+		})
+	}
+}
+
+func TestParseTransactionRawHex(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name  string
+		txOut string
+		want  []byte
+	}{
+		{"normal", getTx1, mustDecodeHexString(tx1Hex)},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			buf := bytes.NewBufferString(c.txOut)
+			got, err := btc.ParseTransactionRawHex(buf)
+			if err != nil {
+				t.Errorf("failed to parse %+v", err)
+				t.Skip()
+			}
+			if !reflect.DeepEqual(got, c.want) {
+				t.Errorf("got %+v but want %+v", got, c.want)
+			}
+		})
+	}
+}
+
+func TestBitcoinCLI_DecodeRawTransaction_DryRun(t *testing.T) {
+	btc.DryRun(true)
+
+	t.Parallel()
+	cases := []struct {
+		name        string
+		rawTx       string
+		fullcommand string
+	}{
+		{"normal", tx1Hex, fmt.Sprintf("%s -chain=test decoderawtransaction %s", path1, tx1Hex)},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			b := btc.NewBitcoinCLI(path1, model.BTCTestnet3, "", "", "", "")
+			ctx := context.Background()
+			bRawTx, _ := hex.DecodeString(c.rawTx)
+			_, err := b.DecodeRawTransaction(ctx, bRawTx)
+			if !errors.Is(err, btc.ErrDryRun) {
+				t.Errorf("unexpected err %+v", err)
+				t.Skip()
+			}
+			if err.Error() != c.fullcommand {
+				t.Errorf("got %+v but want %+v", err.Error(), c.fullcommand)
+			}
+		})
+	}
+}
+
+func TestParseRawTransactionOpReturn(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name      string
+		decodedTx string
+		want      []byte
+	}{
+		{"normal", decRawTx1, mustDecodeHexString(opRet1)},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			buf := bytes.NewBufferString(c.decodedTx)
+			got, err := btc.ParseRawTransactionOpReturn(buf)
+			if err != nil {
+				t.Errorf("failed to parse %+v", err)
+				t.Skip()
+			}
+			if !reflect.DeepEqual(got, c.want) {
+				t.Errorf("got %+v but want %+v", got, c.want)
 			}
 		})
 	}
