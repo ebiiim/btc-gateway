@@ -1,6 +1,9 @@
 package model
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 // BTCNet represents a Bitcoin network.
 type BTCNet uint8
@@ -47,7 +50,12 @@ var validAnchorVersions map[uint8]struct{} = map[uint8]struct{}{
 var anchorVersion uint8 = 1
 
 // XAnchorVersion sets anchorVersion for test.
-func XAnchorVersion(v uint8) { anchorVersion = v }
+func XAnchorVersion(v uint8) {
+	if _, ok := validAnchorVersions[v]; !ok {
+		panic("invalid anchor version: " + fmt.Sprintf("%d", v))
+	}
+	anchorVersion = v
+}
 
 // NewAnchor initializes an Anchor.
 //
