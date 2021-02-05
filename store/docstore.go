@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"encoding/gob"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -100,17 +101,12 @@ func (d *Docstore) Put(ctx context.Context, r *model.AnchorRecord) error {
 }
 
 func (d *Docstore) Get(ctx context.Context, bbc1dom, bbc1tx []byte) (*model.AnchorRecord, error) {
-	var id [64]byte
 	tmp := model.NewAnchor(255, time.Time{}, bbc1dom, bbc1tx)
-	copy(id[0:32], tmp.BBc1DomainID[:])
-	copy(id[32:64], tmp.BBc1TransactionID[:])
-
 	e := &AnchorEntity{
-		ID: id,
+		CID: hex.EncodeToString(tmp.BBc1DomainID[:]) + hex.EncodeToString(tmp.BBc1TransactionID[:]),
 	}
 	if err := d.GetEntity(ctx, e); err != nil {
 		return nil, err
 	}
-
 	return e.AnchorRecord(), nil
 }

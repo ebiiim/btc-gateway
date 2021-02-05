@@ -15,19 +15,19 @@ import (
 )
 
 var (
-	dom1     = util.MustConvert32B(util.MustDecodeHexString("456789abc0ef0123456089abcdef0023456789a0cdef0123406789abcde00123"))
-	tx1      = util.MustConvert32B(util.MustDecodeHexString("56789abcd0f0123456709abcdef0103456789ab0def0123450789abcdef01234"))
-	aeID1    = util.MustConvert64B(util.MustDecodeHexString("456789abc0ef0123456089abcdef0023456789a0cdef0123406789abcde0012356789abcd0f0123456709abcdef0103456789ab0def0123450789abcdef01234"))
+	dom1     = util.MustDecodeHexString("456789abc0ef0123456089abcdef0023456789a0cdef0123406789abcde00123")
+	tx1      = util.MustDecodeHexString("56789abcd0f0123456709abcdef0103456789ab0def0123450789abcdef01234")
+	cid1     = "456789abc0ef0123456089abcdef0023456789a0cdef0123406789abcde0012356789abcd0f0123456709abcdef0103456789ab0def0123450789abcdef01234"
 	ts1      = time.Unix(1612449628, 0)
 	btctx1   = util.MustDecodeHexString("6928e1c6478d1f55ed1a5d86e1ab24669a14f777b879bbb25c746543810bf916")
 	txts1    = time.Unix(1612449916, 0)
-	confirm1 = uint(239)
+	confirm1 = uint(312)
 	a1       = &model.Anchor{
 		Version:           255,
 		BTCNet:            model.BTCTestnet3,
 		Timestamp:         ts1,
-		BBc1DomainID:      dom1,
-		BBc1TransactionID: tx1,
+		BBc1DomainID:      util.MustConvert32B(dom1),
+		BBc1TransactionID: util.MustConvert32B(tx1),
 	}
 	ar1 = &model.AnchorRecord{
 		Anchor:           a1,
@@ -38,15 +38,17 @@ var (
 		Note:             "hello world",
 	}
 	ae1 = &store.AnchorEntity{
-		ID:               aeID1,
-		AnchorVersion:    255,
-		BTCNet:           model.BTCTestnet3,
-		AnchorTime:       ts1,
-		BTCTransactionID: btctx1,
-		TransactionTime:  txts1,
-		Confirmations:    confirm1,
-		BBc1DomainName:   "testDom",
-		Note:             "hello world",
+		CID:               cid1,
+		BBc1DomainID:      dom1,
+		BBc1TransactionID: tx1,
+		AnchorVersion:     255,
+		BTCNet:            model.BTCTestnet3,
+		AnchorTime:        ts1,
+		BTCTransactionID:  btctx1,
+		TransactionTime:   txts1,
+		Confirmations:     confirm1,
+		BBc1DomainName:    "testDom",
+		Note:              "hello world",
 	}
 )
 
@@ -97,9 +99,9 @@ func TestAnchorEntity_AnchorRecord(t *testing.T) {
 // Assumes tests will be run from package root.
 var (
 	testdb1 = "testdata/anchors1.db"
-	conn1   = "mem://store_test_get/id?filename=" + testdb1
+	conn1   = "mem://store_test_get/cid?filename=" + testdb1
 	testdb2 = "testdata/anchors2.db"
-	conn2   = "mem://store_test_put/id?filename=" + testdb2
+	conn2   = "mem://store_test_put/cid?filename=" + testdb2
 )
 
 //
@@ -110,10 +112,10 @@ func TestDocstore_GetEntity(t *testing.T) {
 	cases := []struct {
 		name string
 		conn string
-		id   [64]byte
+		cid  string
 		want *store.AnchorEntity
 	}{
-		{"normal", conn1, aeID1, ae1},
+		{"normal", conn1, cid1, ae1},
 	}
 	for _, c := range cases {
 		c := c
@@ -125,7 +127,7 @@ func TestDocstore_GetEntity(t *testing.T) {
 			ctx, cancelFunc := context.WithTimeout(ctx, 5*time.Second)
 			defer cancelFunc()
 
-			got := &store.AnchorEntity{ID: c.id}
+			got := &store.AnchorEntity{CID: c.cid}
 			if err := docs.GetEntity(ctx, got); err != nil {
 				t.Error(err)
 				t.Skip()
@@ -142,10 +144,10 @@ func TestDocstore_PutEntity(t *testing.T) {
 		name   string
 		dbFile string
 		conn   string
-		id     [64]byte
+		cid    string
 		put    *store.AnchorEntity
 	}{
-		{"normal", testdb2, conn2, aeID1, ae1},
+		{"normal", testdb2, conn2, cid1, ae1},
 	}
 	for _, c := range cases {
 		c := c
@@ -168,7 +170,7 @@ func TestDocstore_PutEntity(t *testing.T) {
 			}
 			// load & get
 			docs2 := store.NewDocstore(c.conn)
-			got := &store.AnchorEntity{ID: c.id}
+			got := &store.AnchorEntity{CID: c.cid}
 			if err := docs2.GetEntity(ctx, got); err != nil {
 				t.Error(err)
 			}
