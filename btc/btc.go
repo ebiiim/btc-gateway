@@ -1,9 +1,8 @@
-package gw
+package btc
 
 import (
 	"context"
 
-	"github.com/ebiiim/btc-gateway/btc"
 	"github.com/ebiiim/btc-gateway/model"
 )
 
@@ -16,4 +15,4 @@ type BTC interface {
 	GetAnchor(ctx context.Context, btctx []byte) (*model.AnchorRecord, error)
 }
 
-var _ BTC = (*btc.BitcoinCLI)(nil)
+var _ BTC = (*BitcoinCLI)(nil)
