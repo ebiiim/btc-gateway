@@ -57,6 +57,7 @@ var (
 	ErrFailedToExec         = errors.New("ErrFailedToExec")
 	ErrFailedToDecode       = errors.New("ErrFailedToDecode")
 	ErrInvalidOpReturn      = errors.New("ErrInvalidOpReturn")
+	ErrInconsistentBTCNet   = errors.New("ErrInconsistentBTCNet")
 	ErrUnexpectedExitCode   = errors.New("ErrUnexpectedExitCode")
 	ErrExitCode1            = errors.New("ErrExitCode1")
 	ErrPingFailed           = errors.New("ErrPingFailed")
@@ -416,6 +417,11 @@ const (
 
 // PutAnchor anchors the given Anchor by sending a Bitcoin transaction and returns its transaction ID.
 func (b *BitcoinCLI) PutAnchor(ctx context.Context, a *model.Anchor) ([]byte, error) {
+	// Check the given Anchor.
+	if a.BTCNet != b.btcNet {
+		return nil, fmt.Errorf("%w (Anchor: %s, BitcoinCLI: %s) (PutAnchor)", ErrInconsistentBTCNet, a.BTCNet, b.btcNet)
+	}
+
 	// Check the bitcoind.
 	err := b.Ping(ctx)
 	if err != nil {
