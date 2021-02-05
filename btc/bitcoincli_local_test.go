@@ -15,6 +15,7 @@ import (
 
 	"github.com/ebiiim/btc-gateway/btc"
 	"github.com/ebiiim/btc-gateway/model"
+	"github.com/ebiiim/btc-gateway/util"
 )
 
 const (
@@ -94,7 +95,7 @@ func Test_Local_BitcoinCLI_SignRawTransactionWithWallet_Error_FailedToSign(t *te
 	)
 	b, ctx, cf := prepCLI(t)
 	defer cf()
-	buf, err := b.SignRawTransactionWithWallet(ctx, mustDecodeHexString(rawTx))
+	buf, err := b.SignRawTransactionWithWallet(ctx, util.MustDecodeHexString(rawTx))
 	if err != nil {
 		t.Error(err)
 		t.Skip()
@@ -110,7 +111,7 @@ func Test_Local_BitcoinCLI_SendRawTransaction_Error_AlreadyExistsORAlreadySpent(
 	)
 	b, ctx, cf := prepCLI(t)
 	defer cf()
-	_, err := b.SendRawTransaction(ctx, mustDecodeHexString(signedTx))
+	_, err := b.SendRawTransaction(ctx, util.MustDecodeHexString(signedTx))
 	if !(errors.Is(err, btc.ErrTxAlreadyExists) || errors.Is(err, btc.ErrTxAlreadySpent)) {
 		t.Errorf("want %+v but got %+v", btc.ErrTxAlreadyExists, err)
 	}
@@ -123,7 +124,7 @@ func Test_Local_BitcoinCLI_DecodeRawTransaction(t *testing.T) {
 	)
 	b, ctx, cf := prepCLI(t)
 	defer cf()
-	decoded, err := b.DecodeRawTransaction(ctx, mustDecodeHexString(signedTx))
+	decoded, err := b.DecodeRawTransaction(ctx, util.MustDecodeHexString(signedTx))
 	if err != nil {
 		t.Error(err)
 		t.Skip()
@@ -145,7 +146,7 @@ func Test_Local_BitcoinCLI_GetTransaction(t *testing.T) {
 	)
 	b, ctx, cf := prepCLI(t)
 	defer cf()
-	got, err := b.GetTransaction(ctx, mustDecodeHexString(txid))
+	got, err := b.GetTransaction(ctx, util.MustDecodeHexString(txid))
 	if err != nil {
 		t.Error(err)
 		t.Skip()

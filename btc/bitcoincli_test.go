@@ -12,15 +12,8 @@ import (
 
 	"github.com/ebiiim/btc-gateway/btc"
 	"github.com/ebiiim/btc-gateway/model"
+	"github.com/ebiiim/btc-gateway/util"
 )
-
-func mustDecodeHexString(s string) []byte {
-	p, err := hex.DecodeString(s)
-	if err != nil {
-		panic("mustDecodeHexString")
-	}
-	return p
-}
 
 const (
 	path1 = "/home/foo/bar/bitcoin-cli"
@@ -515,7 +508,7 @@ func TestParseTransactionRawHex(t *testing.T) {
 		txOut string
 		want  []byte
 	}{
-		{"normal", getTx1, mustDecodeHexString(tx1Hex)},
+		{"normal", getTx1, util.MustDecodeHexString(tx1Hex)},
 	}
 	for _, c := range cases {
 		c := c
@@ -571,7 +564,7 @@ func TestParseRawTransactionOpReturn(t *testing.T) {
 		decodedTx string
 		want      []byte
 	}{
-		{"normal", decRawTx1, mustDecodeHexString(opRet1)},
+		{"normal", decRawTx1, util.MustDecodeHexString(opRet1)},
 	}
 	for _, c := range cases {
 		c := c
