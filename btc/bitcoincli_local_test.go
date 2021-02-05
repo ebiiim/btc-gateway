@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"io"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -18,13 +19,13 @@ import (
 	"github.com/ebiiim/btc-gateway/util"
 )
 
-const (
-	lPath = "../bitcoin-cli" // Put bitcoin-cli in project root.
-	lNet  = model.BTCTestnet3
-	lAddr = ""
-	lPort = ""
-	lUser = ""
-	lPW   = ""
+var (
+	lPath = os.Getenv("BITCOIN_CLI_PATH")
+	lNet  = model.BTCNet(uint8(util.MustAtoi(os.Getenv("BITCOIN_NETWORK"))))
+	lAddr = os.Getenv("BITCOIND_ADDR")
+	lPort = os.Getenv("BITCOIND_PORT")
+	lUser = os.Getenv("BITCOIND_RPC_USER")
+	lPW   = os.Getenv("BITCOIND_RPC_PASSWORD")
 )
 
 func prepCLI(t *testing.T) (*btc.BitcoinCLI, context.Context, context.CancelFunc) {

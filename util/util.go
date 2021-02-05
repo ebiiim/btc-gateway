@@ -4,6 +4,7 @@ package util
 import (
 	"encoding/hex"
 	"fmt"
+	"strconv"
 )
 
 // MustDecodeHexString returns a decoded string or raises panic.
@@ -43,4 +44,13 @@ func MustConvert80B(p []byte) [80]byte {
 	var b [80]byte
 	copy(b[:], p[:])
 	return b
+}
+
+// MustAtoi returns an int or raises panic.
+func MustAtoi(s string) int {
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		panic(fmt.Sprintf("MustAtoi: %s", s))
+	}
+	return i
 }

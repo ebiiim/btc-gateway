@@ -13,6 +13,7 @@ func Test(t *testing.T) {
 	util.MustConvert32B(util.MustDecodeHexString(s32))
 	util.MustConvert64B(util.MustDecodeHexString(s64))
 	util.MustConvert80B(util.MustDecodeHexString(s80))
+	util.MustAtoi("12345")
 }
 
 func TestMustDecodeHexString_Panic(t *testing.T) {
@@ -53,4 +54,14 @@ func TestMustConvert80B_Panic(t *testing.T) {
 	}()
 
 	util.MustConvert80B([]byte{123, 123})
+}
+
+func TestMustAtoi_Panic(t *testing.T){
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("panic needed")
+		}
+	}()
+
+	util.MustAtoi("A")
 }
