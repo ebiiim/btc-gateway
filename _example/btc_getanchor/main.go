@@ -29,11 +29,11 @@ func main() {
 	var b btc.BTC
 	xCLI := btc.NewBitcoinCLI(cliPath, btcNet, rpcAddr, rpcPort, rpcUser, rpcPW)
 	b = xCLI
-	ctx, cancelFunc := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancelFunc()
 
 	// Get the Anchor specified by given Bitcoin transaction ID.
 	btctx := util.MustDecodeHexString("6928e1c6478d1f55ed1a5d86e1ab24669a14f777b879bbb25c746543810bf916")
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancelFunc()
 	ar, err := b.GetAnchor(ctx, btctx)
 	if err != nil {
 		log.Fatal(err)

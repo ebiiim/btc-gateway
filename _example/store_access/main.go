@@ -31,20 +31,6 @@ var (
 	rpcPW   = util.GetEnvOr("BITCOIND_RPC_PASSWORD", "")
 )
 
-func getAnchor() *model.AnchorRecord {
-	var b btc.BTC
-	xCLI := btc.NewBitcoinCLI(cliPath, btcNet, rpcAddr, rpcPort, rpcUser, rpcPW)
-	b = xCLI
-	ctx, cancelFunc := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancelFunc()
-	btctx := util.MustDecodeHexString("6928e1c6478d1f55ed1a5d86e1ab24669a14f777b879bbb25c746543810bf916")
-	ar, err := b.GetAnchor(ctx, btctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return ar
-}
-
 const (
 	dbName    = "btcgw"
 	tableName = "anchors"
@@ -84,41 +70,54 @@ func useMongoDBAtlas() string {
 	return fmt.Sprintf("mongo://%s/%s?id_field=%s", dbName, tableName, key)
 }
 
-func main() {
-	// Prepare anchor to put.
-	ar := getAnchor()
-	ar.BBc1DomainName = "testDom"
-	ar.Note = "hello world"
+func getAnchor(txid string) *model.AnchorRecord {
+	var b btc.BTC
+	xCLI := btc.NewBitcoinCLI(cliPath, btcNet, rpcAddr, rpcPort, rpcUser, rpcPW)
+	b = xCLI
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancelFunc()
+	btctx := util.MustDecodeHexString(txid)
+	ar, err := b.GetAnchor(ctx, btctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return ar
+}
 
+func main() {
 	// Setup Store.
 	var conn string
 	conn = useMemdocstore()
 	// conn = useDynamoDB()
 	// conn = useMongoDBAtlas()
-
 	var st store.Store
 	docs := store.NewDocstore(conn)
 	st = docs
-	ctx := context.Background()
-	ctx, cancelFunc := context.WithTimeout(ctx, 30*time.Second)
+	var err error
+	defer func() {
+		if cErr := docs.Close(); cErr != nil {
+			log.Printf("%v (captured err: %v)", cErr, err)
+		}
+	}()
+
+	// Prepare anchor to put.
+	ar := getAnchor("6928e1c6478d1f55ed1a5d86e1ab24669a14f777b879bbb25c746543810bf916")
+	ar.BBc1DomainName = "testDom"
+	ar.Note = "hello world"
+
+	// Put the anchor in Store, and then Get it.
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancelFunc()
-
-	// Put the anchor in Store.
-	if err := st.Put(ctx, ar); err != nil {
-		log.Fatal(err)
+	if err = st.Put(ctx, ar); err != nil {
+		log.Println(err)
+		return
 	}
-
-	// Get the anchor from Store.
 	dom32 := util.MustDecodeHexString("456789abc0ef0123456089abcdef0023456789a0cdef0123406789abcde00123")
 	tx32 := util.MustDecodeHexString("56789abcd0f0123456709abcdef0103456789ab0def0123450789abcdef01234")
 	ar2, err := st.Get(ctx, dom32, tx32)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return
 	}
 	fmt.Printf("%s\n", ar2)
-
-	// Close Store.
-	if err := docs.Close(); err != nil {
-		log.Fatal(err)
-	}
 }

@@ -29,8 +29,6 @@ func main() {
 	var b btc.BTC
 	xCLI := btc.NewBitcoinCLI(cliPath, btcNet, rpcAddr, rpcPort, rpcUser, rpcPW)
 	b = xCLI
-	ctx, cancelFunc := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancelFunc()
 
 	// Define Anchor data.
 	ts := time.Unix(1612449628, 0)
@@ -44,9 +42,11 @@ func main() {
 	xCLI.XPrepareAnchor(utxo, btcAddr)
 
 	// Put an Anchor in Bitcoin block chain.
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancelFunc()
 	txID, err := b.PutAnchor(ctx, anc)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(txID) // 6928e1c6478d1f55ed1a5d86e1ab24669a14f777b879bbb25c746543810bf916
+	fmt.Printf("%x\n", txID) // 6928e1c6478d1f55ed1a5d86e1ab24669a14f777b879bbb25c746543810bf916
 }
