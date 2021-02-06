@@ -28,7 +28,7 @@ func (r *AnchorRecord) String() string {
 	s += r.Anchor.String()
 	s += "-------------Record-------------\n"
 	s += fmt.Sprintf("   BTCTransactionID: %x\n", r.BTCTransactionID)
-	s += fmt.Sprintf("    TransactionTime: %d | %s | 0x%016x\n", r.TransactionTime.Unix(), r.TransactionTime, r.TransactionTime)
+	s += fmt.Sprintf("    TransactionTime: %d | %s | 0x%016x\n", r.TransactionTime.Unix(), r.TransactionTime, r.TransactionTime.Unix())
 	s += fmt.Sprintf("      Confirmations: %d\n", r.Confirmations)
 	s += "------------Optional------------\n"
 	s += fmt.Sprintf("     BBc1DomainName: %s\n", r.BBc1DomainName)
