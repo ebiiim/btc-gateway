@@ -1,6 +1,7 @@
 package util_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/ebiiim/btc-gateway/util"
@@ -56,7 +57,7 @@ func TestMustConvert80B_Panic(t *testing.T) {
 	util.MustConvert80B([]byte{123, 123})
 }
 
-func TestMustAtoi_Panic(t *testing.T){
+func TestMustAtoi_Panic(t *testing.T) {
 	defer func() {
 		if r := recover(); r == nil {
 			t.Error("panic needed")
@@ -64,4 +65,22 @@ func TestMustAtoi_Panic(t *testing.T){
 	}()
 
 	util.MustAtoi("A")
+}
+
+func TestGetEnvOr(t *testing.T) {
+	key := "___TESTGETENVOR___"
+	def := "___DEFAULTVALUE___"
+	val := "___COOOOOLVALUE___"
+	if err := os.Setenv(key, ""); err != nil {
+		t.Error(err)
+	}
+	if s := util.GetEnvOr(key, def); s != def {
+		t.Errorf("got %s but want %s", s, def)
+	}
+	if err := os.Setenv(key, val); err != nil {
+		t.Error(err)
+	}
+	if s := util.GetEnvOr(key, def); s != val {
+		t.Errorf("got %s but want %s", s, def)
+	}
 }

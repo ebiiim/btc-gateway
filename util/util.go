@@ -4,6 +4,7 @@ package util
 import (
 	"encoding/hex"
 	"fmt"
+	"os"
 	"strconv"
 )
 
@@ -53,4 +54,14 @@ func MustAtoi(s string) int {
 		panic(fmt.Sprintf("MustAtoi: %s", s))
 	}
 	return i
+}
+
+// GetEnvOr returns an environment variable specified by env,
+// or returns defaultValue if the environment variable is not defined.
+func GetEnvOr(env string, defaultValue string) string {
+	v := os.Getenv(env)
+	if v == "" {
+		return defaultValue
+	}
+	return v
 }

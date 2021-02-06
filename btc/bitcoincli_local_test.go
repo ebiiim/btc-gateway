@@ -8,7 +8,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"io"
-	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -20,12 +19,12 @@ import (
 )
 
 var (
-	lPath = os.Getenv("BITCOIN_CLI_PATH")
-	lNet  = model.BTCNet(uint8(util.MustAtoi(os.Getenv("BITCOIN_NETWORK"))))
-	lAddr = os.Getenv("BITCOIND_ADDR")
-	lPort = os.Getenv("BITCOIND_PORT")
-	lUser = os.Getenv("BITCOIND_RPC_USER")
-	lPW   = os.Getenv("BITCOIND_RPC_PASSWORD")
+	lPath = util.GetEnvOr("BITCOIN_CLI_PATH", "../bitcoin-cli")
+	lNet  = model.BTCNet(uint8(util.MustAtoi(util.GetEnvOr("BITCOIN_NETWORK", "3")))) // model.BTCTestnet3
+	lAddr = util.GetEnvOr("BITCOIND_ADDR", "")
+	lPort = util.GetEnvOr("BITCOIND_PORT", "")
+	lUser = util.GetEnvOr("BITCOIND_RPC_USER", "")
+	lPW   = util.GetEnvOr("BITCOIND_RPC_PASSWORD", "")
 )
 
 func prepCLI(t *testing.T) (*btc.BitcoinCLI, context.Context, context.CancelFunc) {
