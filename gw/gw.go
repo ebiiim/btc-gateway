@@ -25,7 +25,15 @@ type Gateway interface {
 	// GetRecord gets an AnchorRecord
 	// specified by the given information from the datastore.
 	GetRecord(ctx context.Context, domID, txID []byte) (*model.AnchorRecord, error)
+
+	// RefreshRecord update AnchorRecord specified by domID and txID.
+	// Get it from datastore, update AnchorRecord.Confirmations by
+	// retrieving and checking the Bitcoin transaction, and then put it into datastore.
+	// In addition, changes AnchorRecord.BBc1DomainName or AnchorRecord.Note or both, if the given value is not nil.
+	RefreshRecord(ctx context.Context, domID, txID []byte, pBBc1domName, pNote *string) error
 }
+
+var _ Gateway = (*GatewayApp)(nil)
 
 // Errors
 var (
@@ -88,14 +96,27 @@ func (g *GatewayApp) GetRecord(ctx context.Context, domID, txID []byte) (*model.
 	return ar, nil
 }
 
-// func (g *GatewayApp) RefreshRecord(ctx context.Context, domID, txID []byte, bbc1domName, note string) error {
-// 	oldAR, err := g.GetRecord(ctx, domID, txID)
-// 	if err != nil {
-// 		return fmt.Errorf("%w (%v)", ErrCouldNotRefreshRecord, err)
-// 	}
-// 	newAR, err := g.BTC.GetAnchor(ctx, oldAR.BTCTransactionID)
-// 	if err != nil {
-// 		return fmt.Errorf("%w (%v)", ErrCouldNotRefreshRecord, err)
-// 	}
-
-// }
+func (g *GatewayApp) RefreshRecord(ctx context.Context, domID, txID []byte, pBBc1domName, pNote *string) error {
+	oldAR, err := g.GetRecord(ctx, domID, txID)
+	if err != nil {
+		return fmt.Errorf("%w (%v)", ErrCouldNotRefreshRecord, err)
+	}
+	newAR, err := g.BTC.GetAnchor(ctx, oldAR.BTCTransactionID)
+	if err != nil {
+		return fmt.Errorf("%w (%v)", ErrCouldNotRefreshRecord, err)
+	}
+	if err := g.Store.UpdateConfirmations(ctx, domID, txID, newAR.Confirmations); err != nil {
+		return fmt.Errorf("%w (%v)", ErrCouldNotRefreshRecord, err)
+	}
+	if pBBc1domName != nil {
+		if err := g.Store.UpdateBBc1DomainName(ctx, domID, txID, *pBBc1domName); err != nil {
+			return fmt.Errorf("%w (%v)", ErrCouldNotRefreshRecord, err)
+		}
+	}
+	if pNote != nil {
+		if err := g.Store.UpdateNote(ctx, domID, txID, *pNote); err != nil {
+			return fmt.Errorf("%w (%v)", ErrCouldNotRefreshRecord, err)
+		}
+	}
+	return nil
+}
