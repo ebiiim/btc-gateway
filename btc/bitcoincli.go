@@ -26,6 +26,7 @@ const (
 	cmdSignRawTransactionWithWallet = "signrawtransactionwithwallet"
 	cmdSendRawTransaction           = "sendrawtransaction"
 	cmdDecodeRawTransaction         = "decoderawtransaction"
+	cmdOptionVersion                = "--version"
 )
 
 type cliArg string
@@ -58,6 +59,7 @@ var (
 	ErrFailedToDecode       = errors.New("ErrFailedToDecode")
 	ErrInvalidOpReturn      = errors.New("ErrInvalidOpReturn")
 	ErrInconsistentBTCNet   = errors.New("ErrInconsistentBTCNet")
+	ErrUnsupportedVersion   = errors.New("ErrUnsupportedVersion")
 	ErrUnexpectedExitCode   = errors.New("ErrUnexpectedExitCode")
 	ErrExitCode1            = errors.New("ErrExitCode1")
 	ErrPingFailed           = errors.New("ErrPingFailed")
@@ -194,10 +196,37 @@ func (b *BitcoinCLI) run(ctx context.Context, args []string) (*bytes.Buffer, *by
 	return &stdout, &stderr, nil
 }
 
-// Ping pings bitcoind and returns nil if successful.
+var supportedCLIVersions = map[string]struct{}{
+	"Bitcoin Core RPC client version v0.20.1": {},
+	"Bitcoin Core RPC client version v0.21.0": {},
+}
+
+func (b *BitcoinCLI) checkCLIVersion(ctx context.Context) error {
+	if dryRun {
+		return nil
+	}
+	stdout, stderr, err := b.run(ctx, []string{cmdOptionVersion})
+	if err != nil {
+		return fmt.Errorf("%w (stdout=%s, stderr=$%s)", ErrUnsupportedVersion, stdout.String(), stderr.String())
+	}
+	stdout = removeCRLF(stdout)
+	stderr = removeCRLF(stderr)
+	if stderr.String() != "" {
+		return fmt.Errorf("%w (stdout=%s, stderr=$%s)", ErrUnsupportedVersion, stdout.String(), stderr.String())
+	}
+	if _, ok := supportedCLIVersions[stdout.String()]; !ok {
+		return fmt.Errorf("%w (%s)", ErrUnsupportedVersion, stdout.String())
+	}
+	return nil
+}
+
+// Ping checks bitcoin-cli version and pings bitcoind.
 //
-// Possible errors: ErrExitCode1|ErrUnexpectedExitCode|ErrFailedToExec
+// Possible errors: ErrUnsupportedVersion|ErrExitCode1|ErrUnexpectedExitCode|ErrFailedToExec
 func (b *BitcoinCLI) Ping(ctx context.Context) error {
+	if err := b.checkCLIVersion(ctx); err != nil {
+		return err
+	}
 	if stdout, stderr, err := b.run(ctx, []string{cmdPing}); err != nil {
 		if errors.Is(err, ErrDryRun) {
 			return err
