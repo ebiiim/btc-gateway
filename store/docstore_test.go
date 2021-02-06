@@ -184,6 +184,78 @@ func TestDocstore_PutEntity(t *testing.T) {
 	}
 }
 
+func TestDocstore_UpdateEntity(t *testing.T) {
+	cases := []struct {
+		name                string
+		dbFile              string
+		conn                string
+		cid                 string
+		original            *store.AnchorEntity
+		updateConfirmations bool
+		confirmations       uint
+		updateBBc1Dom       bool
+		bbc1Dom             string
+		updateNote          bool
+		note                string
+	}{
+		{"all", testdb2, conn2, cid1, ae1, true, 123, true, "my-domain", true, "yo"},
+		{"confs_only", testdb2, conn2, cid1, ae1, true, 123, false, "", false, ""},
+		{"dom_only", testdb2, conn2, cid1, ae1, false, 0, true, "my-domain", false, ""},
+		{"note_only", testdb2, conn2, cid1, ae1, false, 0, false, "", true, "yo"},
+		{"empty_dom_note", testdb2, conn2, cid1, ae1, false, 0, true, "", true, ""},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.name, func(t *testing.T) {
+			docs := store.NewDocstore(c.conn)
+
+			ctx := context.Background()
+			ctx, cancelFunc := context.WithTimeout(ctx, 30*time.Second)
+			defer cancelFunc()
+
+			// put
+			if err := docs.PutEntity(ctx, c.original); err != nil {
+				t.Error(err)
+			}
+			// update
+			ue := *c.original
+			ue.Confirmations = c.confirmations
+			ue.BBc1DomainName = c.bbc1Dom
+			ue.Note = c.note
+			if err := docs.UpdateEntity(ctx, &ue, c.updateConfirmations, c.updateBBc1Dom, c.updateNote); err != nil {
+				t.Error(err)
+			}
+			// get
+			got := &store.AnchorEntity{CID: c.cid}
+			if err := docs.GetEntity(ctx, got); err != nil {
+				t.Error(err)
+			}
+			// test
+			if c.updateConfirmations && (got.Confirmations != c.confirmations) {
+				t.Errorf("updateConfirmations: got %+v but want %+v", got.Confirmations, c.confirmations)
+			}
+			if !c.updateConfirmations && (got.Confirmations != c.original.Confirmations) {
+				t.Errorf("!updateConfirmations: got %+v but want %+v", got.Confirmations, c.original.Confirmations)
+			}
+			if c.updateBBc1Dom && (got.BBc1DomainName != c.bbc1Dom) {
+				t.Errorf("updateBBc1Dom: got %+v but want %+v", got.BBc1DomainName, c.bbc1Dom)
+			}
+			if !c.updateBBc1Dom && (got.BBc1DomainName != c.original.BBc1DomainName) {
+				t.Errorf("!updateBBc1Dom: got %+v but want %+v", got.BBc1DomainName, c.original.BBc1DomainName)
+			}
+			if c.updateNote && (got.Note != c.note) {
+				t.Errorf("updateNote: got %+v but want %+v", got.Note, c.note)
+			}
+			if !c.updateNote && (got.Note != c.original.Note) {
+				t.Errorf("!updateNote got %+v but want %+v", got.Note, c.original.Note)
+			}
+			// cleanup
+			docs.Close()
+			os.Remove(c.dbFile)
+		})
+	}
+}
+
 func TestDocstore_Get(t *testing.T) {
 	cases := []struct {
 		name  string
@@ -192,7 +264,7 @@ func TestDocstore_Get(t *testing.T) {
 		txid  []byte
 		want  *model.AnchorRecord
 	}{
-		{"normal", conn1, dom1[:], tx1[:], ar1},
+		{"normal", conn1, dom1, tx1, ar1},
 	}
 	for _, c := range cases {
 		c := c
@@ -226,7 +298,7 @@ func TestDocstore_Put(t *testing.T) {
 		txid   []byte
 		want   *model.AnchorRecord
 	}{
-		{"normal", testdb2, conn2, dom1[:], tx1[:], ar1},
+		{"normal", testdb2, conn2, dom1, tx1, ar1},
 	}
 	for _, c := range cases {
 		c := c
@@ -258,6 +330,138 @@ func TestDocstore_Put(t *testing.T) {
 			}
 			// cleanup
 			docs2.Close()
+			os.Remove(c.dbFile)
+		})
+	}
+}
+
+func TestDocstore_UpdateConfirmations(t *testing.T) {
+	cases := []struct {
+		name     string
+		dbFile   string
+		conn     string
+		domid    []byte
+		txid     []byte
+		original *model.AnchorRecord
+		wantConf uint
+	}{
+		{"normal", testdb2, conn2, dom1, tx1, ar1, 123},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.name, func(t *testing.T) {
+			docs := store.NewDocstore(c.conn)
+			ctx := context.Background()
+			ctx, cancelFunc := context.WithTimeout(ctx, 30*time.Second)
+			defer cancelFunc()
+			// put
+			if err := docs.Put(ctx, c.original); err != nil {
+				t.Error(err)
+			}
+			// update
+			if err := docs.UpdateConfirmations(ctx, c.domid, c.txid, c.wantConf); err != nil {
+				t.Error(err)
+			}
+			// get
+			got, err := docs.Get(ctx, c.domid, c.txid)
+			if err != nil {
+				t.Error(err)
+			}
+			want := *c.original
+			want.Confirmations = c.wantConf
+			if !reflect.DeepEqual(got, &want) {
+				t.Errorf("got %+v but want %+v", got, &want)
+			}
+			// cleanup
+			docs.Close()
+			os.Remove(c.dbFile)
+		})
+	}
+}
+
+func TestDocstore_UpdateBBc1DomainName(t *testing.T) {
+	cases := []struct {
+		name     string
+		dbFile   string
+		conn     string
+		domid    []byte
+		txid     []byte
+		original *model.AnchorRecord
+		wantDom  string
+	}{
+		{"normal", testdb2, conn2, dom1, tx1, ar1, "my-domain"},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.name, func(t *testing.T) {
+			docs := store.NewDocstore(c.conn)
+			ctx := context.Background()
+			ctx, cancelFunc := context.WithTimeout(ctx, 30*time.Second)
+			defer cancelFunc()
+			// put
+			if err := docs.Put(ctx, c.original); err != nil {
+				t.Error(err)
+			}
+			// update
+			if err := docs.UpdateBBc1DomainName(ctx, c.domid, c.txid, c.wantDom); err != nil {
+				t.Error(err)
+			}
+			// get
+			got, err := docs.Get(ctx, c.domid, c.txid)
+			if err != nil {
+				t.Error(err)
+			}
+			want := *c.original
+			want.BBc1DomainName = c.wantDom
+			if !reflect.DeepEqual(got, &want) {
+				t.Errorf("got %+v but want %+v", got, &want)
+			}
+			// cleanup
+			docs.Close()
+			os.Remove(c.dbFile)
+		})
+	}
+}
+
+func TestDocstore_UpdateNote(t *testing.T) {
+	cases := []struct {
+		name     string
+		dbFile   string
+		conn     string
+		domid    []byte
+		txid     []byte
+		original *model.AnchorRecord
+		wantNote string
+	}{
+		{"normal", testdb2, conn2, dom1, tx1, ar1, "yo"},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.name, func(t *testing.T) {
+			docs := store.NewDocstore(c.conn)
+			ctx := context.Background()
+			ctx, cancelFunc := context.WithTimeout(ctx, 30*time.Second)
+			defer cancelFunc()
+			// put
+			if err := docs.Put(ctx, c.original); err != nil {
+				t.Error(err)
+			}
+			// update
+			if err := docs.UpdateNote(ctx, c.domid, c.txid, c.wantNote); err != nil {
+				t.Error(err)
+			}
+			// get
+			got, err := docs.Get(ctx, c.domid, c.txid)
+			if err != nil {
+				t.Error(err)
+			}
+			want := *c.original
+			want.Note = c.wantNote
+			if !reflect.DeepEqual(got, &want) {
+				t.Errorf("got %+v but want %+v", got, &want)
+			}
+			// cleanup
+			docs.Close()
 			os.Remove(c.dbFile)
 		})
 	}

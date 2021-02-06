@@ -8,7 +8,7 @@ import (
 )
 
 // AnchorEntity contains data equalavant to AnchorRecord,
-// but focuses on placing data in the data store.
+// but focuses on placing data in the datastore.
 // In particular, CID is a key field that contains
 // a combined string that starts with BBc-1 domain ID,
 // followed by transaction ID.
@@ -22,8 +22,8 @@ type AnchorEntity struct {
 	BTCTransactionID  []byte    `docstore:"btctxid"`
 	TransactionTime   time.Time `docstore:"txtime"`
 	Confirmations     uint      `docstore:"confirmations"`
-	BBc1DomainName    string    `docstore:"bbc1dom,omitempty"`
-	Note              string    `docstore:"note,omitempty"`
+	BBc1DomainName    string    `docstore:"bbc1dom"`
+	Note              string    `docstore:"note"`
 }
 
 // NewAnchorEntity initializes an AnchorEntity from the given AnchorRecord.

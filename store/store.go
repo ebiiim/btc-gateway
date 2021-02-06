@@ -12,8 +12,21 @@ import (
 type Store interface {
 	// Put adds or replaces an AnchorRecord in O(1) time.
 	Put(ctx context.Context, r *model.AnchorRecord) error
+
 	// Get returns the AnchorRecord specified by bbc1dom and bbc1tx in O(1) time.
 	Get(ctx context.Context, bbc1dom, bbc1tx []byte) (*model.AnchorRecord, error)
+
+	// UpdateConfirmations updates Confirmations
+	//  in the AnchorRecord specified by bbc1dom and bbc1tx.
+	UpdateConfirmations(ctx context.Context, bbc1dom, bbc1tx []byte, confirmations uint) error
+
+	// UpdateBBc1DomainName updates BBc1DomainName
+	// in the AnchorRecord specified by bbc1dom and bbc1tx.
+	UpdateBBc1DomainName(ctx context.Context, bbc1dom, bbc1tx []byte, bbc1domName string) error
+
+	// UpdateNote updates Note
+	// in the AnchorRecord specified by bbc1dom and bbc1tx.
+	UpdateNote(ctx context.Context, bbc1dom, bbc1tx []byte, note string) error
 }
 
 var _ Store = (*Docstore)(nil)
