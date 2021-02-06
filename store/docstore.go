@@ -47,7 +47,7 @@ func NewDocstore(conn string) *Docstore {
 	return d
 }
 
-func (d *Docstore) Open() error {
+func (d *Docstore) open() error {
 	coll, err := docstore.OpenCollection(context.Background(), d.conn)
 	if err != nil {
 		return fmt.Errorf("%w (%v)", ErrFailedToOpen, err)
@@ -56,11 +56,18 @@ func (d *Docstore) Open() error {
 	return nil
 }
 
-func (d *Docstore) Close() error {
+func (d *Docstore) Open() error {
 	var oErr error
-	d.once.Do(func() { oErr = d.Open() })
+	d.once.Do(func() { oErr = d.open() })
 	if oErr != nil {
 		return oErr
+	}
+	return nil
+}
+
+func (d *Docstore) Close() error {
+	if err := d.Open(); err != nil {
+		return fmt.Errorf("%w (%v)", ErrFailedToClose, err)
 	}
 	if err := d.coll.Close(); err != nil {
 		return fmt.Errorf("%w (%v)", ErrFailedToClose, err)
@@ -69,10 +76,8 @@ func (d *Docstore) Close() error {
 }
 
 func (d *Docstore) PutEntity(ctx context.Context, e *AnchorEntity) error {
-	var oErr error
-	d.once.Do(func() { oErr = d.Open() })
-	if oErr != nil {
-		return oErr
+	if err := d.Open(); err != nil {
+		return fmt.Errorf("%w (%v)", ErrFailedToClose, err)
 	}
 	if err := d.coll.Put(ctx, e); err != nil {
 		return fmt.Errorf("%w (%v)", ErrFailedToPut, err)
@@ -81,10 +86,8 @@ func (d *Docstore) PutEntity(ctx context.Context, e *AnchorEntity) error {
 }
 
 func (d *Docstore) GetEntity(ctx context.Context, e *AnchorEntity) error {
-	var oErr error
-	d.once.Do(func() { oErr = d.Open() })
-	if oErr != nil {
-		return oErr
+	if err := d.Open(); err != nil {
+		return fmt.Errorf("%w (%v)", ErrFailedToClose, err)
 	}
 	if err := d.coll.Get(ctx, e); err != nil {
 		return fmt.Errorf("%w (%v)", ErrFailedToGet, err)
