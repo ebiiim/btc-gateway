@@ -102,13 +102,13 @@ func main() {
 	txid := util.MustDecodeHexString("cfb3b1082976d42374e8561b21226595add8ae3d37cf9fb7b7a78055cade8a4c")
 	ctx, cancelFunc := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancelFunc()
-	if err = g.StoreTransaction(ctx, txid); err != nil {
+	if err = g.StoreRecord(ctx, txid); err != nil {
 		log.Println(err)
 		return
 	}
 	dom32 := util.MustDecodeHexString("456789abc0ef0123456089abcdef0023456789a0cdef0123406789abcde00123")
 	tx32 := util.MustDecodeHexString("56789abcd0f0123456709abcdef0103456789ab0def0123450789abcdef01235")
-	ar, err := g.GetTransaction(ctx, dom32, tx32)
+	ar, err := g.GetRecord(ctx, dom32, tx32)
 	if err != nil {
 		log.Println(err)
 		return

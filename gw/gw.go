@@ -17,19 +17,22 @@ type Gateway interface {
 	// RegisterTransaction inserts an anchor into Bitcoin block chain
 	// by sending a transaction, and returns its Bitcoin transaction ID.
 	RegisterTransaction(ctx context.Context, domID, txID []byte) (btcTXID []byte, err error)
-	// StoreTransaction retrieve a Bitcoin transaction,
+
+	// StoreRecord retrieves a Bitcoin transaction,
 	// and saves its AnchorRecord embedded in OP_RETURN in the datastore.
-	StoreTransaction(ctx context.Context, btcTXID []byte) error
-	// GetTransaction gets an AnchorRecord
+	StoreRecord(ctx context.Context, btcTXID []byte) error
+
+	// GetRecord gets an AnchorRecord
 	// specified by the given information from the datastore.
-	GetTransaction(ctx context.Context, domID, txID []byte) (*model.AnchorRecord, error)
+	GetRecord(ctx context.Context, domID, txID []byte) (*model.AnchorRecord, error)
 }
 
 // Errors
 var (
-	ErrCouldNotPutAnchor        = errors.New("ErrCouldNotPutAnchor")
-	ErrCouldNotStoreTransaction = errors.New("ErrCouldNotStoreTransaction")
-	ErrCouldNotGetTransaction   = errors.New("ErrCouldNotGetTransaction")
+	ErrCouldNotPutAnchor     = errors.New("ErrCouldNotPutAnchor")
+	ErrCouldNotStoreRecord   = errors.New("ErrCouldNotStoreRecord")
+	ErrCouldNotGetRecord     = errors.New("ErrCouldNotGetRecord")
+	ErrCouldNotRefreshRecord = errors.New("ErrCouldNotRefreshRecord")
 )
 
 type GatewayApp struct {
@@ -66,21 +69,33 @@ func (g *GatewayApp) RegisterTransaction(ctx context.Context, domID, txID []byte
 	return txid, err
 }
 
-func (g *GatewayApp) StoreTransaction(ctx context.Context, btcTXID []byte) error {
+func (g *GatewayApp) StoreRecord(ctx context.Context, btcTXID []byte) error {
 	ar, err := g.BTC.GetAnchor(ctx, btcTXID)
 	if err != nil {
-		return fmt.Errorf("%w (%v)", ErrCouldNotStoreTransaction, err)
+		return fmt.Errorf("%w (%v)", ErrCouldNotStoreRecord, err)
 	}
 	if err := g.Store.Put(ctx, ar); err != nil {
-		return fmt.Errorf("%w (%v)", ErrCouldNotStoreTransaction, err)
+		return fmt.Errorf("%w (%v)", ErrCouldNotStoreRecord, err)
 	}
 	return nil
 }
 
-func (g *GatewayApp) GetTransaction(ctx context.Context, domID, txID []byte) (*model.AnchorRecord, error) {
+func (g *GatewayApp) GetRecord(ctx context.Context, domID, txID []byte) (*model.AnchorRecord, error) {
 	ar, err := g.Store.Get(ctx, domID, txID)
 	if err != nil {
-		return nil, fmt.Errorf("%w (%v)", ErrCouldNotGetTransaction, err)
+		return nil, fmt.Errorf("%w (%v)", ErrCouldNotGetRecord, err)
 	}
 	return ar, nil
 }
+
+// func (g *GatewayApp) RefreshRecord(ctx context.Context, domID, txID []byte, bbc1domName, note string) error {
+// 	oldAR, err := g.GetRecord(ctx, domID, txID)
+// 	if err != nil {
+// 		return fmt.Errorf("%w (%v)", ErrCouldNotRefreshRecord, err)
+// 	}
+// 	newAR, err := g.BTC.GetAnchor(ctx, oldAR.BTCTransactionID)
+// 	if err != nil {
+// 		return fmt.Errorf("%w (%v)", ErrCouldNotRefreshRecord, err)
+// 	}
+
+// }
