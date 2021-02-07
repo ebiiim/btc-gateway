@@ -95,8 +95,8 @@ func main() {
 
 	// Setup Gateway.
 	var g gw.Gateway
-	gApp := gw.NewGatewayApp(model.BTCTestnet3, b, st)
-	g = gApp
+	gImpl := gw.NewGatewayImpl(model.BTCTestnet3, b, st)
+	g = gImpl
 
 	// Put the Anchor in data base and then Get it.
 	txid := util.MustDecodeHexString("cfb3b1082976d42374e8561b21226595add8ae3d37cf9fb7b7a78055cade8a4c")

@@ -33,7 +33,7 @@ type Gateway interface {
 	RefreshRecord(ctx context.Context, domID, txID []byte, pBBc1domName, pNote *string) error
 }
 
-var _ Gateway = (*GatewayApp)(nil)
+var _ Gateway = (*GatewayImpl)(nil)
 
 // Errors
 var (
@@ -43,13 +43,13 @@ var (
 	ErrCouldNotRefreshRecord = errors.New("ErrCouldNotRefreshRecord")
 )
 
-type GatewayApp struct {
+type GatewayImpl struct {
 	BTCNet model.BTCNet
 	BTC    btc.BTC
 	Store  store.Store
 }
 
-// NewGatewayApp initializes a GatewayApp.
+// NewGatewayImpl initializes a GatewayImpl.
 //
 // Parameters:
 //   - bn sets Bitcoin network to anchor.
@@ -57,8 +57,8 @@ type GatewayApp struct {
 //   - s sets store.Store.
 //
 // bn must be same as b.BTCNet.
-func NewGatewayApp(bn model.BTCNet, b btc.BTC, s store.Store) *GatewayApp {
-	g := &GatewayApp{
+func NewGatewayImpl(bn model.BTCNet, b btc.BTC, s store.Store) *GatewayImpl {
+	g := &GatewayImpl{
 		BTCNet: bn,
 		BTC:    b,
 		Store:  s,
@@ -68,7 +68,7 @@ func NewGatewayApp(bn model.BTCNet, b btc.BTC, s store.Store) *GatewayApp {
 
 var timeNow = time.Now
 
-func (g *GatewayApp) RegisterTransaction(ctx context.Context, domID, txID []byte) (btcTXID []byte, err error) {
+func (g *GatewayImpl) RegisterTransaction(ctx context.Context, domID, txID []byte) (btcTXID []byte, err error) {
 	a := model.NewAnchor(g.BTCNet, timeNow(), domID, txID)
 	txid, err := g.BTC.PutAnchor(ctx, a)
 	if err != nil {
@@ -77,7 +77,7 @@ func (g *GatewayApp) RegisterTransaction(ctx context.Context, domID, txID []byte
 	return txid, err
 }
 
-func (g *GatewayApp) StoreRecord(ctx context.Context, btcTXID []byte) error {
+func (g *GatewayImpl) StoreRecord(ctx context.Context, btcTXID []byte) error {
 	ar, err := g.BTC.GetAnchor(ctx, btcTXID)
 	if err != nil {
 		return fmt.Errorf("%w (%v)", ErrCouldNotStoreRecord, err)
@@ -88,7 +88,7 @@ func (g *GatewayApp) StoreRecord(ctx context.Context, btcTXID []byte) error {
 	return nil
 }
 
-func (g *GatewayApp) GetRecord(ctx context.Context, domID, txID []byte) (*model.AnchorRecord, error) {
+func (g *GatewayImpl) GetRecord(ctx context.Context, domID, txID []byte) (*model.AnchorRecord, error) {
 	ar, err := g.Store.Get(ctx, domID, txID)
 	if err != nil {
 		return nil, fmt.Errorf("%w (%v)", ErrCouldNotGetRecord, err)
@@ -96,7 +96,7 @@ func (g *GatewayApp) GetRecord(ctx context.Context, domID, txID []byte) (*model.
 	return ar, nil
 }
 
-func (g *GatewayApp) RefreshRecord(ctx context.Context, domID, txID []byte, pBBc1domName, pNote *string) error {
+func (g *GatewayImpl) RefreshRecord(ctx context.Context, domID, txID []byte, pBBc1domName, pNote *string) error {
 	oldAR, err := g.GetRecord(ctx, domID, txID)
 	if err != nil {
 		return fmt.Errorf("%w (%v)", ErrCouldNotRefreshRecord, err)

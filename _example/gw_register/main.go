@@ -81,8 +81,8 @@ func main() {
 
 	// Setup Gateway.
 	var g gw.Gateway
-	gApp := gw.NewGatewayApp(model.BTCTestnet3, b, st)
-	g = gApp
+	gImpl := gw.NewGatewayImpl(model.BTCTestnet3, b, st)
+	g = gImpl
 
 	// Define Anchor data.
 	dom32 := util.MustDecodeHexString("456789abc0ef0123456089abcdef0023456789a0cdef0123406789abcde00123")

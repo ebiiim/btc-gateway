@@ -95,8 +95,8 @@ func main() {
 
 	// Setup Gateway.
 	var g gw.Gateway
-	gApp := gw.NewGatewayApp(model.BTCTestnet3, b, st)
-	g = gApp
+	gImpl := gw.NewGatewayImpl(model.BTCTestnet3, b, st)
+	g = gImpl
 
 	// Get the record and update its Note.
 	ctx, cancelFunc := context.WithTimeout(context.Background(), 30*time.Second)
