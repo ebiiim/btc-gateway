@@ -5,6 +5,7 @@ bitcoin-wallet
 
 # testdata
 !anchors1.db
+!apikeys1.db
 
 # project
 main
