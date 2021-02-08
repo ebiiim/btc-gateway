@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/ebiiim/btc-gateway/api"
+	"github.com/ebiiim/btc-gateway/auth"
 	"github.com/ebiiim/btc-gateway/btc"
 	"github.com/ebiiim/btc-gateway/gw"
 	"github.com/ebiiim/btc-gateway/model"
@@ -97,6 +98,11 @@ func main() {
 		}
 	}()
 
+	// Setup Authenticator.
+	var a auth.Authenticator
+	a = &auth.SpecialAuth{}
+	defer a.Close()
+
 	// Setup Swagger.
 	swagger, err := api.GetSwagger()
 	if err != nil {
@@ -108,12 +114,12 @@ func main() {
 
 	//	Setup validator.
 	validatorOpts := &oapimiddleware.Options{}
-	validatorOpts.Options.AuthenticationFunc = func(c context.Context, input *openapi3filter.AuthenticationInput) error {
+	validatorOpts.Options.AuthenticationFunc = func(ctx context.Context, input *openapi3filter.AuthenticationInput) error {
 		h := input.RequestValidationInput.Request.Header["X-Api-Key"]
 		if h == nil {
 			return errors.New("X-API-KEY not found")
 		}
-		if !api.AuthFn(h[0], input.RequestValidationInput.PathParams) {
+		if !a.AuthFunc(ctx, h[0], input.RequestValidationInput.PathParams) {
 			return errors.New("auth failed")
 		}
 		return nil

@@ -16,14 +16,6 @@ import (
 	"github.com/ebiiim/btc-gateway/model"
 )
 
-type AuthFunc func(apiKey string, pathParams map[string]string) bool
-
-var specialAuthFunc = func(apiKey string, _ map[string]string) bool {
-	return apiKey == "12345"
-}
-
-var AuthFn AuthFunc = specialAuthFunc
-
 var PrettifyResponseJSON = false
 
 func writeJSON(w io.Writer, v interface{}) {
