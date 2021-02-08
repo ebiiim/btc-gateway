@@ -19,13 +19,25 @@ func TestUUIDNextKey(t *testing.T) {
 	}
 }
 
-func dummyNextKey(key string) auth.NextKeyFunc {
-	return func() string { return key }
+func TestSpecialAuth(t *testing.T) {
+	a := &auth.SpecialAuth{}
+	if !(a.AuthFunc(nil, "12345", nil)) && a.AuthFunc(nil, "1234", nil) {
+		t.Error("AuthFunc")
+		t.Skip()
+	}
+	if err := a.Close(); err != nil {
+		t.Error("Close")
+		t.Skip()
+	}
 }
 
 //
 // Do not parallelize Authenticator tests because memdocstore is NOT thread-safe.
 //
+
+func dummyNextKey(key string) auth.NextKeyFunc {
+	return func() string { return key }
+}
 
 // Assumes tests will be run from package root.
 var (
@@ -204,6 +216,35 @@ func TestAuthenticator_Delete(t *testing.T) {
 				t.Error(err)
 			}
 			err = a.Delete(ctx, got.Key)
+			if err != nil {
+				t.Error(err)
+			}
+		})
+	}
+}
+
+func TestAuthenticator_Delete_NotFound(t *testing.T) {
+	cases := []struct {
+		name string
+		conn string
+		key  string
+	}{
+		{"not_found", conn2, "12345"},
+		{"empty", conn2, ""},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.name, func(t *testing.T) {
+			a := auth.MustNewDocstoreAuth(c.conn)
+			defer a.Close()
+			ctx, cancelFunc := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancelFunc()
+
+			err := a.Delete(ctx, c.key)
+			if err != nil {
+				t.Error(err)
+			}
+			err = a.Delete(ctx, c.key)
 			if err != nil {
 				t.Error(err)
 			}

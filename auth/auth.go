@@ -141,7 +141,8 @@ func (a *DocstoreAuth) Delete(ctx context.Context, apiKey string) error {
 	k := &APIKey{
 		Key: apiKey,
 	}
-	if err := a.coll.Delete(ctx, k); err != nil {
+	err := a.coll.Delete(ctx, k)
+	if err != nil && !strings.Contains(err.Error(), "code=InvalidArgument") {
 		return fmt.Errorf("%w (%v)", ErrCouldNotDeleteKey, err)
 	}
 	return nil
