@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"io"
 
 	"github.com/ebiiim/btc-gateway/model"
 )
@@ -27,6 +28,8 @@ type Store interface {
 	// UpdateNote updates Note
 	// in the AnchorRecord specified by bbc1dom and bbc1tx.
 	UpdateNote(ctx context.Context, bbc1dom, bbc1tx []byte, note string) error
+
+	io.Closer
 }
 
 var _ Store = (*Docstore)(nil)

@@ -660,3 +660,8 @@ func (b *BitcoinCLI) GetAnchor(ctx context.Context, btctx []byte) (*model.Anchor
 	}
 	return &r, nil
 }
+
+// Close does not required to be called on exit.
+func (b *BitcoinCLI) Close() error {
+	return nil
+}

@@ -8,6 +8,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/ebiiim/btc-gateway/api"
@@ -97,18 +99,18 @@ func main() {
 		log.Println(err)
 		return
 	}
+	gwImpl := gw.NewGatewayImpl(model.BTCTestnet3, btcCLI, docStore)
+	gwService := api.NewGatewayService(gwImpl)
 	defer func() {
-		if cErr := docStore.Close(); cErr != nil {
+		if cErr := gwService.Close(); cErr != nil {
 			log.Printf("%v (captured err: %v)", cErr, err)
 		}
 	}()
-	gwImpl := gw.NewGatewayImpl(model.BTCTestnet3, btcCLI, docStore)
-	gwService := api.NewGatewayService(gwImpl)
 
 	// Setup Swagger.
 	swagger, err := api.GetSwagger()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Could not load swagger spec\n: %s", err)
+		log.Printf("Could not load swagger spec\n: %s", err)
 		os.Exit(1)
 	}
 	// Skips validating server names.
@@ -148,5 +150,17 @@ func main() {
 		Handler: r,
 		Addr:    addr,
 	}
-	log.Fatal(s.ListenAndServe())
+	go func() {
+		fmt.Println(s.ListenAndServe())
+	}()
+
+	sigCh := make(chan os.Signal)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	sig := <-sigCh
+	fmt.Printf("Signal %s received. Shutting down...\n", sig)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancelFunc()
+	if err := s.Shutdown(ctx); err != nil {
+		log.Printf("Graceful shutdown failed: %v\n", err)
+	}
 }

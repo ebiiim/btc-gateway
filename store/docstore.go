@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io"
 	"sync"
 	"time"
 
@@ -31,7 +30,6 @@ var (
 )
 
 type Docstore struct {
-	io.Closer
 	conn string
 	coll *docstore.Collection
 
@@ -57,6 +55,7 @@ func (d *Docstore) open() error {
 	return nil
 }
 
+// Open opens d.coll once.
 func (d *Docstore) Open() error {
 	var oErr error
 	d.once.Do(func() { oErr = d.open() })
@@ -66,6 +65,7 @@ func (d *Docstore) Open() error {
 	return nil
 }
 
+// Close closes the Docstore.
 func (d *Docstore) Close() error {
 	if err := d.Open(); err != nil {
 		return fmt.Errorf("%w (%v)", ErrFailedToClose, err)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/ebiiim/btc-gateway/btc"
@@ -12,7 +13,6 @@ import (
 )
 
 // Gateway provides features to register and verify BBc-1 transactions.
-// This interface does not handle datastore closes.
 type Gateway interface {
 	// RegisterTransaction inserts an anchor into Bitcoin block chain
 	// by sending a transaction, and returns its Bitcoin transaction ID.
@@ -31,6 +31,8 @@ type Gateway interface {
 	// retrieving and checking the Bitcoin transaction, and then put it into datastore.
 	// In addition, changes AnchorRecord.BBc1DomainName or AnchorRecord.Note or both, if the given value is not nil.
 	RefreshRecord(ctx context.Context, domID, txID []byte, pBBc1domName, pNote *string) error
+
+	io.Closer
 }
 
 var _ Gateway = (*GatewayImpl)(nil)
@@ -42,6 +44,7 @@ var (
 	ErrCouldNotStoreRecord   = errors.New("ErrCouldNotStoreRecord")
 	ErrCouldNotGetRecord     = errors.New("ErrCouldNotGetRecord")
 	ErrCouldNotRefreshRecord = errors.New("ErrCouldNotRefreshRecord")
+	ErrCouldNotCloseStore    = errors.New("ErrCouldNotCloseStore")
 )
 
 type GatewayImpl struct {
@@ -118,6 +121,15 @@ func (g *GatewayImpl) RefreshRecord(ctx context.Context, domID, txID []byte, pBB
 		if err := g.Store.UpdateNote(ctx, domID, txID, *pNote); err != nil {
 			return fmt.Errorf("%w (%v)", ErrCouldNotRefreshRecord, err)
 		}
+	}
+	return nil
+}
+
+// Close closes g.Store.
+func (g *GatewayImpl) Close() error {
+	err := g.Store.Close()
+	if err != nil {
+		return fmt.Errorf("%w (%v)", ErrCouldNotCloseStore, err)
 	}
 	return nil
 }
