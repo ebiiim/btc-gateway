@@ -62,16 +62,6 @@ func useMongoDBAtlas() string {
 	return fmt.Sprintf("mongo://%s/%s?id_field=%s", dbName, tableName, key)
 }
 
-var middlewareHealthz = func(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "" || r.URL.Path == "/healthz" || r.URL.Path == "/" {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
-}
-
 func main() {
 	var port = flag.Int("port", 8080, "HTTP port")
 	var dev = flag.Bool("dev", false, "Use AnchorVersion 255 and prettify HTTP response body")
@@ -131,10 +121,13 @@ func main() {
 
 	// Setup Chi.
 	r := chi.NewRouter()
+	r.Use(middleware.RealIP)                     // use this only if you have a trusted reverse proxy
+	r.Use(httprate.LimitByIP(60, 1*time.Minute)) // returns 429
+	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
-	r.Use(httprate.LimitByIP(100, 1*time.Minute))
-	r.Use(middlewareHealthz)
+	r.Use(middleware.Heartbeat("/healthz"))
 	r.Use(oapimiddleware.OapiRequestValidatorWithOptions(swagger, validatorOpts))
+	r.Use(middleware.SetHeader("Content-Type", "application/json"))
 	api.HandlerFromMux(gwService, r)
 	opts := api.ChiServerOptions{
 		BaseURL:     "",
