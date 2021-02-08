@@ -14,19 +14,29 @@ import (
 )
 
 type Authenticator interface {
-	AuthFunc(ctx context.Context, apiKey string, urlParams map[string]string) bool
+	AuthFunc(ctx context.Context, apiKey string, params map[string]string) bool
 	io.Closer
 }
 
 var _ Authenticator = (*SpecialAuth)(nil)
 var _ Authenticator = (*DocstoreAuth)(nil)
 
-type SpecialAuth struct {
-	io.Closer
+const (
+	paramPathDomainID      = "dom"
+	paramPathTransactionID = "tx"
+)
+
+// SpecialAuth is a dummy Authenticator for tests.
+type SpecialAuth struct{}
+
+// AuthFunc returns (apiKey == "12345").
+func (*SpecialAuth) AuthFunc(_ context.Context, apiKey string, _ map[string]string) bool {
+	return apiKey == "12345"
 }
 
-func (_ *SpecialAuth) AuthFunc(_ context.Context, apiKey string, _ map[string]string) bool {
-	return apiKey == "12345"
+// Close returns nil.
+func (*SpecialAuth) Close() error {
+	return nil
 }
 
 // var AuthFn AuthFunc = specialAuthFunc
@@ -77,12 +87,10 @@ type DocstoreAuth struct {
 	once sync.Once
 }
 
-const urlParamDomainID = "dom"
-
 // AuthFunc handles authentication.
-func (a *DocstoreAuth) AuthFunc(ctx context.Context, apiKey string, urlParams map[string]string) bool {
+func (a *DocstoreAuth) AuthFunc(ctx context.Context, apiKey string, params map[string]string) bool {
 	// TODO: check error and put logs if unexpected error
-	b, _ := a.Do(ctx, apiKey, urlParams[urlParamDomainID])
+	b, _ := a.Do(ctx, apiKey, params[paramPathDomainID])
 	return b
 }
 
