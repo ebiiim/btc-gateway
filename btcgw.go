@@ -38,12 +38,14 @@ var (
 )
 
 const (
-	dbName    = "btcgw"
-	tableName = "anchors"
-	key       = "cid"
+	dbName      = "btcgw"
+	anchorTable = "anchors"
+	anchorKey   = "cid"
+	authTable   = "apikeys"
+	authKey     = "key"
 )
 
-func useMongoDBAtlas() string {
+func useMongoDBAtlas() {
 	// Please set environment variables first.
 	// e.g. `set -a; source .env; set +a;`
 	var (
@@ -57,10 +59,16 @@ func useMongoDBAtlas() string {
 	)
 	mongoAtlas := fmt.Sprintf(mongoAtlasFmt, mongoUser, mongoPW, mongoHost)
 	if err := os.Setenv(mongoEnv, mongoAtlas); err != nil {
-		log.Println(err)
-		return ""
+		panic(err)
 	}
-	return fmt.Sprintf("mongo://%s/%s?id_field=%s", dbName, tableName, key)
+}
+
+func mongoStore() string {
+	return fmt.Sprintf("mongo://%s/%s?id_field=%s", dbName, anchorTable, anchorKey)
+}
+
+func mongoAuthenticator() string {
+	return fmt.Sprintf("mongo://%s/%s?id_field=%s", dbName, authTable, authKey)
 }
 
 func main() {
@@ -81,11 +89,11 @@ func main() {
 		fmt.Println("")
 	}
 
+	useMongoDBAtlas()
 	// Setup GatewayService.
 	var err error
 	btcCLI := btc.NewBitcoinCLI(cliPath, btcNet, rpcAddr, rpcPort, rpcUser, rpcPW)
-	conn := useMongoDBAtlas()
-	docStore := store.NewDocstore(conn)
+	docStore := store.NewDocstore(mongoStore())
 	if err = docStore.Open(); err != nil {
 		log.Println(err)
 		return
@@ -100,7 +108,8 @@ func main() {
 
 	// Setup Authenticator.
 	var a auth.Authenticator
-	a = &auth.SpecialAuth{}
+	a = auth.MustNewDocstoreAuth(mongoAuthenticator())
+	// a = &auth.SpecialAuth{}
 	defer a.Close()
 
 	// Setup Swagger.
