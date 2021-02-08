@@ -1,14 +1,14 @@
 openapi: 3.0.0
 info:
-  version: ""
-  title: ""
+  version: "0.1.0"
+  title: "BBc-1 BTC Gateway"
   description: ""
   termsOfService: ""
   contact:
     name: ""
     url: ""
   license:
-    name: ""
+    name: "PLACE_HOLDER"
     url: ""
 servers:
   - url: ""
