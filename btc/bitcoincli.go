@@ -222,7 +222,7 @@ func (b *BitcoinCLI) checkCLIVersion(ctx context.Context) error {
 
 // Ping checks bitcoin-cli version and pings bitcoind.
 //
-// Possible errors: ErrUnsupportedVersion|ErrExitCode1|ErrUnexpectedExitCode|ErrFailedToExec
+// Possible errors: ErrUnsupportedVersion|ErrPingFailed|ErrUnexpectedExitCode|ErrFailedToExec
 func (b *BitcoinCLI) Ping(ctx context.Context) error {
 	if err := b.checkCLIVersion(ctx); err != nil {
 		return err
@@ -230,6 +230,9 @@ func (b *BitcoinCLI) Ping(ctx context.Context) error {
 	if stdout, stderr, err := b.run(ctx, []string{cmdPing}); err != nil {
 		if errors.Is(err, ErrDryRun) {
 			return err
+		}
+		if errors.Is(err, ErrExitCode1) {
+			return ErrPingFailed
 		}
 		return fmt.Errorf("%w (stdout=%s, stderr=%s)", err, stdout.String(), stderr.String())
 	}
@@ -286,7 +289,7 @@ func calcFee(bal string, feeSatoshi uint) (string, error) {
 // ParseTransactionReceived returns received amount of the given Bitcoin address.
 // Only counts the first received amount of the given address.
 // Returns error if no received.
-func ParseTransactionReceived(txJSON *bytes.Buffer, recvAddr string) (string, error) {
+func (*BitcoinCLI) ParseTransactionReceived(txJSON *bytes.Buffer, recvAddr string) (string, error) {
 	var val map[string]interface{}
 	if err := json.NewDecoder(txJSON).Decode(&val); err != nil {
 		return "", fmt.Errorf("%w (%v)", ErrFailedToDecode, err)
@@ -378,7 +381,7 @@ func (b *BitcoinCLI) SignRawTransactionWithWallet(ctx context.Context, rawTx []b
 }
 
 // ParseSignRawTransactionWithWallet parses the response from b.SignRawTransactionWithWallet.
-func ParseSignRawTransactionWithWallet(stdout io.Reader) ([]byte, error) {
+func (*BitcoinCLI) ParseSignRawTransactionWithWallet(stdout io.Reader) ([]byte, error) {
 	var val map[string]interface{}
 	if err := json.NewDecoder(stdout).Decode(&val); err != nil {
 		return nil, fmt.Errorf("%w (%v)", ErrFailedToDecode, err)
@@ -465,11 +468,11 @@ func (b *BitcoinCLI) PutAnchor(ctx context.Context, a *model.Anchor) ([]byte, er
 	var bufR, bufC bytes.Buffer
 	w := io.MultiWriter(&bufR, &bufC)
 	io.Copy(w, fromTx)
-	balance, err := ParseTransactionReceived(&bufR, b.xBTCAddr)
+	balance, err := b.ParseTransactionReceived(&bufR, b.xBTCAddr)
 	if err != nil {
 		return nil, fmt.Errorf("%w (PutAnchor)", err)
 	}
-	confs, err := ParseTransactionConfirmations(&bufC)
+	confs, err := b.ParseTransactionConfirmations(&bufC)
 	if err != nil {
 		return nil, fmt.Errorf("%w (GetAnchor)", err)
 	}
@@ -490,7 +493,7 @@ func (b *BitcoinCLI) PutAnchor(ctx context.Context, a *model.Anchor) ([]byte, er
 	if err != nil {
 		return nil, fmt.Errorf("%w (PutAnchor)", err)
 	}
-	signedTx, err := ParseSignRawTransactionWithWallet(signedTxReader)
+	signedTx, err := b.ParseSignRawTransactionWithWallet(signedTxReader)
 	if err != nil {
 		return nil, fmt.Errorf("%w (PutAnchor)", err)
 	}
@@ -503,7 +506,7 @@ func (b *BitcoinCLI) PutAnchor(ctx context.Context, a *model.Anchor) ([]byte, er
 }
 
 // ParseTransactionConfirmations returns confirmations of the given transaction.
-func ParseTransactionConfirmations(txJSON *bytes.Buffer) (uint, error) {
+func (*BitcoinCLI) ParseTransactionConfirmations(txJSON *bytes.Buffer) (uint, error) {
 	var val map[string]interface{}
 	if err := json.NewDecoder(txJSON).Decode(&val); err != nil {
 		return 0, fmt.Errorf("%w (%v)", ErrFailedToDecode, err)
@@ -517,7 +520,7 @@ func ParseTransactionConfirmations(txJSON *bytes.Buffer) (uint, error) {
 }
 
 // ParseTransactionTime returns time of the given transaction.
-func ParseTransactionTime(txJSON *bytes.Buffer) (time.Time, error) {
+func (*BitcoinCLI) ParseTransactionTime(txJSON *bytes.Buffer) (time.Time, error) {
 	var val map[string]interface{}
 	if err := json.NewDecoder(txJSON).Decode(&val); err != nil {
 		return time.Time{}, fmt.Errorf("%w (%v)", ErrFailedToDecode, err)
@@ -531,7 +534,7 @@ func ParseTransactionTime(txJSON *bytes.Buffer) (time.Time, error) {
 }
 
 // ParseTransactionRawHex returns raw data of the given transaction.
-func ParseTransactionRawHex(txJSON *bytes.Buffer) ([]byte, error) {
+func (*BitcoinCLI) ParseTransactionRawHex(txJSON *bytes.Buffer) ([]byte, error) {
 	var val map[string]interface{}
 	if err := json.NewDecoder(txJSON).Decode(&val); err != nil {
 		return nil, fmt.Errorf("%w (%v)", ErrFailedToDecode, err)
@@ -564,7 +567,7 @@ func (b *BitcoinCLI) DecodeRawTransaction(ctx context.Context, txdata []byte) (*
 }
 
 // ParseRawTransactionOpReturn returns OP_RETURN value of the given raw transaction.
-func ParseRawTransactionOpReturn(rawTxJSON *bytes.Buffer) ([]byte, error) {
+func (*BitcoinCLI) ParseRawTransactionOpReturn(rawTxJSON *bytes.Buffer) ([]byte, error) {
 	var val map[string]interface{}
 	if err := json.NewDecoder(rawTxJSON).Decode(&val); err != nil {
 		return nil, fmt.Errorf("%w (%v)", ErrFailedToDecode, err)
@@ -618,15 +621,15 @@ func (b *BitcoinCLI) GetAnchor(ctx context.Context, btctx []byte) (*model.Anchor
 	var bufT, bufC, bufH bytes.Buffer
 	w := io.MultiWriter(&bufT, &bufC, &bufH)
 	io.Copy(w, tx)
-	tts, err := ParseTransactionTime(&bufT)
+	tts, err := b.ParseTransactionTime(&bufT)
 	if err != nil {
 		return nil, fmt.Errorf("%w (GetAnchor)", err)
 	}
-	tcs, err := ParseTransactionConfirmations(&bufC)
+	tcs, err := b.ParseTransactionConfirmations(&bufC)
 	if err != nil {
 		return nil, fmt.Errorf("%w (GetAnchor)", err)
 	}
-	tHex, err := ParseTransactionRawHex(&bufH)
+	tHex, err := b.ParseTransactionRawHex(&bufH)
 	if err != nil {
 		return nil, fmt.Errorf("%w (GetAnchor)", err)
 	}
@@ -634,7 +637,7 @@ func (b *BitcoinCLI) GetAnchor(ctx context.Context, btctx []byte) (*model.Anchor
 	if err != nil {
 		return nil, fmt.Errorf("%w (GetAnchor)", err)
 	}
-	opRetSlice, err := ParseRawTransactionOpReturn(rawTx)
+	opRetSlice, err := b.ParseRawTransactionOpReturn(rawTx)
 	if err != nil {
 		return nil, fmt.Errorf("%w (GetAnchor)", err)
 	}

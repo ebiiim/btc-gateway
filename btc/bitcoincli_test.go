@@ -274,7 +274,7 @@ func TestBitcoinCLI_GetTransaction_DryRun(t *testing.T) {
 	}
 }
 
-func TestParseTransactionReceived(t *testing.T) {
+func TestBitcoinCLI_ParseTransactionReceived(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name         string
@@ -289,7 +289,8 @@ func TestParseTransactionReceived(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 			buf := bytes.NewBufferString(c.getTxOutput)
-			recv, err := btc.ParseTransactionReceived(buf, c.targetAddr)
+			b := btc.NewBitcoinCLI("", 0, "", "", "", "")
+			recv, err := b.ParseTransactionReceived(buf, c.targetAddr)
 			if err != nil {
 				t.Errorf("failed to parse %+v", err)
 				t.Skip()
@@ -367,7 +368,7 @@ func TestBitcoinCLI_SignRawTransactionWithWallet_DryRun(t *testing.T) {
 	}
 }
 
-func TestParseSignRawTransactionWithWallet(t *testing.T) {
+func TestBitcoinCLI_ParseSignRawTransactionWithWallet(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name         string
@@ -381,7 +382,8 @@ func TestParseSignRawTransactionWithWallet(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 			buf := bytes.NewBufferString(c.signedOutput)
-			bSignedRawTx, err := btc.ParseSignRawTransactionWithWallet(buf)
+			b := btc.NewBitcoinCLI("", 0, "", "", "", "")
+			bSignedRawTx, err := b.ParseSignRawTransactionWithWallet(buf)
 			if err != nil {
 				t.Errorf("failed to parse %+v", err)
 				t.Skip()
@@ -394,7 +396,7 @@ func TestParseSignRawTransactionWithWallet(t *testing.T) {
 	}
 }
 
-func TestParseSignRawTransactionWithWallet_Error(t *testing.T) {
+func TestBitcoinCLI_ParseSignRawTransactionWithWallet_Error(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name         string
@@ -411,7 +413,8 @@ func TestParseSignRawTransactionWithWallet_Error(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 			buf := bytes.NewBufferString(c.signedOutput)
-			_, err := btc.ParseSignRawTransactionWithWallet(buf)
+			b := btc.NewBitcoinCLI("", 0, "", "", "", "")
+			_, err := b.ParseSignRawTransactionWithWallet(buf)
 			if !errors.Is(err, c.wantErr) {
 				t.Errorf("got %+v but want %+v", c.wantErr, err)
 			}
@@ -449,7 +452,7 @@ func TestBitcoinCLI_SendRawTransaction_DryRun(t *testing.T) {
 	}
 }
 
-func TestParseTransactionConfirmations(t *testing.T) {
+func TestBitcoinCLI_ParseTransactionConfirmations(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name      string
@@ -463,7 +466,8 @@ func TestParseTransactionConfirmations(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 			buf := bytes.NewBufferString(c.txOut)
-			confs, err := btc.ParseTransactionConfirmations(buf)
+			b := btc.NewBitcoinCLI("", 0, "", "", "", "")
+			confs, err := b.ParseTransactionConfirmations(buf)
 			if err != nil {
 				t.Errorf("failed to parse %+v", err)
 				t.Skip()
@@ -475,7 +479,7 @@ func TestParseTransactionConfirmations(t *testing.T) {
 	}
 }
 
-func TestParseTransactionTime(t *testing.T) {
+func TestBitcoinCLI_ParseTransactionTime(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name  string
@@ -489,7 +493,8 @@ func TestParseTransactionTime(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 			buf := bytes.NewBufferString(c.txOut)
-			got, err := btc.ParseTransactionTime(buf)
+			b := btc.NewBitcoinCLI("", 0, "", "", "", "")
+			got, err := b.ParseTransactionTime(buf)
 			if err != nil {
 				t.Errorf("failed to parse %+v", err)
 				t.Skip()
@@ -501,7 +506,7 @@ func TestParseTransactionTime(t *testing.T) {
 	}
 }
 
-func TestParseTransactionRawHex(t *testing.T) {
+func TestBitcoinCLI_ParseTransactionRawHex(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name  string
@@ -515,7 +520,8 @@ func TestParseTransactionRawHex(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 			buf := bytes.NewBufferString(c.txOut)
-			got, err := btc.ParseTransactionRawHex(buf)
+			b := btc.NewBitcoinCLI("", 0, "", "", "", "")
+			got, err := b.ParseTransactionRawHex(buf)
 			if err != nil {
 				t.Errorf("failed to parse %+v", err)
 				t.Skip()
@@ -557,7 +563,7 @@ func TestBitcoinCLI_DecodeRawTransaction_DryRun(t *testing.T) {
 	}
 }
 
-func TestParseRawTransactionOpReturn(t *testing.T) {
+func TestBitcoinCLI_ParseRawTransactionOpReturn(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name      string
@@ -571,7 +577,8 @@ func TestParseRawTransactionOpReturn(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 			buf := bytes.NewBufferString(c.decodedTx)
-			got, err := btc.ParseRawTransactionOpReturn(buf)
+			b := btc.NewBitcoinCLI("", 0, "", "", "", "")
+			got, err := b.ParseRawTransactionOpReturn(buf)
 			if err != nil {
 				t.Errorf("failed to parse %+v", err)
 				t.Skip()

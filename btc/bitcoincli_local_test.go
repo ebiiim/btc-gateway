@@ -100,7 +100,7 @@ func Test_Local_BitcoinCLI_SignRawTransactionWithWallet_Error_FailedToSign(t *te
 		t.Error(err)
 		t.Skip()
 	}
-	if _, err := btc.ParseSignRawTransactionWithWallet(buf); !errors.Is(err, btc.ErrFailedToSign) {
+	if _, err := b.ParseSignRawTransactionWithWallet(buf); !errors.Is(err, btc.ErrFailedToSign) {
 		t.Errorf("want %+v but got %+v", btc.ErrFailedToSign, err)
 	}
 }
@@ -159,23 +159,23 @@ func Test_Local_BitcoinCLI_GetTransaction(t *testing.T) {
 	ww := io.MultiWriter(&wt, &wc, &wh, &wr)
 	io.Copy(wg, got)
 	io.Copy(ww, want)
-	gotTime, err1 := btc.ParseTransactionTime(&gt)
-	wantTime, err2 := btc.ParseTransactionTime(&wt)
+	gotTime, err1 := b.ParseTransactionTime(&gt)
+	wantTime, err2 := b.ParseTransactionTime(&wt)
 	if err1 != nil || err2 != nil || gotTime != wantTime {
 		t.Errorf("wrong time got=%+v (err=%+v) want=%+v (err=%+v)", gotTime, err1, wantTime, err2)
 	}
-	gotConfs, err1 := btc.ParseTransactionConfirmations(&gc)
-	wantConfs, err2 := btc.ParseTransactionConfirmations(&wc)
+	gotConfs, err1 := b.ParseTransactionConfirmations(&gc)
+	wantConfs, err2 := b.ParseTransactionConfirmations(&wc)
 	if err1 != nil || err2 != nil || gotConfs < wantConfs {
 		t.Errorf("wrong confs got=%+v (err=%+v) want=%+v (err=%+v)", gotConfs, err1, wantConfs, err2)
 	}
-	gotHex, err1 := btc.ParseTransactionRawHex(&gh)
-	wantHex, err2 := btc.ParseTransactionRawHex(&wh)
+	gotHex, err1 := b.ParseTransactionRawHex(&gh)
+	wantHex, err2 := b.ParseTransactionRawHex(&wh)
 	if err1 != nil || err2 != nil || !reflect.DeepEqual(gotHex, wantHex) {
 		t.Errorf("wrong hex got=%+v (err=%+v) want=%+v (err=%+v)", gotHex, err1, wantHex, err2)
 	}
-	gotAmo, err1 := btc.ParseTransactionReceived(&gr, recvAddr)
-	wantAmo, err2 := btc.ParseTransactionReceived(&wr, recvAddr)
+	gotAmo, err1 := b.ParseTransactionReceived(&gr, recvAddr)
+	wantAmo, err2 := b.ParseTransactionReceived(&wr, recvAddr)
 	if err1 != nil || err2 != nil || gotAmo != wantAmo {
 		t.Errorf("wrong amount got=%+v (err=%+v) want=%+v (err=%+v)", gotAmo, err1, wantAmo, err2)
 	}
