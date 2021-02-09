@@ -1,3 +1,8 @@
+/*
+Package gw provides ability to anchor BBc-1 transactions to the Bitcoin block chain,
+that hides the implementation of BTC (package btc)
+and Store (package store) from applications.
+*/
 package gw
 
 import (
@@ -7,9 +12,9 @@ import (
 	"io"
 	"time"
 
-	"github.com/ebiiim/btc-gateway/btc"
-	"github.com/ebiiim/btc-gateway/model"
-	"github.com/ebiiim/btc-gateway/store"
+	"github.com/ebiiim/btcgw/btc"
+	"github.com/ebiiim/btcgw/model"
+	"github.com/ebiiim/btcgw/store"
 )
 
 // Gateway provides features to register and verify BBc-1 transactions.

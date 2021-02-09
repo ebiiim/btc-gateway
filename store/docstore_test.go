@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ebiiim/btc-gateway/model"
-	"github.com/ebiiim/btc-gateway/store"
-	"github.com/ebiiim/btc-gateway/util"
+	"github.com/ebiiim/btcgw/model"
+	"github.com/ebiiim/btcgw/store"
+	"github.com/ebiiim/btcgw/util"
 
 	_ "gocloud.dev/docstore/memdocstore"
 )

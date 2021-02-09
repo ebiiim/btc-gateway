@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 
-	"github.com/ebiiim/btc-gateway/model"
+	"github.com/ebiiim/btcgw/model"
 )
 
 func DryRun(b bool)                                       { dryRun = b }

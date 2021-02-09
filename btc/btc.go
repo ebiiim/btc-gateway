@@ -1,13 +1,17 @@
+/*
+Package btc provides ability to send and get anchors,
+that brings an abstraction layer between the Gateway (package gw) and Bitcoin implementations.
+*/
 package btc
 
 import (
 	"context"
 	"io"
 
-	"github.com/ebiiim/btc-gateway/model"
+	"github.com/ebiiim/btcgw/model"
 )
 
-// BTC provides features to send and get anchor.
+// BTC provides features to send and get anchors.
 // This interface is not responsible for which Bitcoin wallet is used.
 type BTC interface {
 	// PutAnchor anchors the given Anchor by sending a Bitcoin transaction and returns its ID.

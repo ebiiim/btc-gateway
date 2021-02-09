@@ -1,3 +1,4 @@
+// btcgw is an API Server that handles anchor CRUD for BBc-1 Ledger Subsystem.
 package main
 
 import (
@@ -12,13 +13,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ebiiim/btc-gateway/api"
-	"github.com/ebiiim/btc-gateway/auth"
-	"github.com/ebiiim/btc-gateway/btc"
-	"github.com/ebiiim/btc-gateway/gw"
-	"github.com/ebiiim/btc-gateway/model"
-	"github.com/ebiiim/btc-gateway/store"
-	"github.com/ebiiim/btc-gateway/util"
+	"github.com/ebiiim/btcgw/api"
+	"github.com/ebiiim/btcgw/auth"
+	"github.com/ebiiim/btcgw/btc"
+	"github.com/ebiiim/btcgw/gw"
+	"github.com/ebiiim/btcgw/model"
+	"github.com/ebiiim/btcgw/store"
+	"github.com/ebiiim/btcgw/util"
 
 	oapimiddleware "github.com/deepmap/oapi-codegen/pkg/chi-middleware"
 	"github.com/getkin/kin-openapi/openapi3filter"

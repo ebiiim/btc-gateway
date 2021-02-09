@@ -1,4 +1,4 @@
-module github.com/ebiiim/btc-gateway
+module github.com/ebiiim/btcgw
 
 go 1.15
 

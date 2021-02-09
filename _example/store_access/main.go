@@ -7,10 +7,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/ebiiim/btc-gateway/btc"
-	"github.com/ebiiim/btc-gateway/model"
-	"github.com/ebiiim/btc-gateway/store"
-	"github.com/ebiiim/btc-gateway/util"
+	"github.com/ebiiim/btcgw/btc"
+	"github.com/ebiiim/btcgw/model"
+	"github.com/ebiiim/btcgw/store"
+	"github.com/ebiiim/btcgw/util"
 
 	_ "gocloud.dev/docstore/awsdynamodb"
 	_ "gocloud.dev/docstore/memdocstore"

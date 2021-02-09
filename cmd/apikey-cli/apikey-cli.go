@@ -1,3 +1,4 @@
+// apikey-cli is an CLI tool to manage API Keys.
 package main
 
 import (
@@ -7,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/ebiiim/btc-gateway/auth"
+	"github.com/ebiiim/btcgw/auth"
 
 	_ "gocloud.dev/docstore/mongodocstore"
 )

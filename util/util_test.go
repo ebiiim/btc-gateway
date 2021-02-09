@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ebiiim/btc-gateway/util"
+	"github.com/ebiiim/btcgw/util"
 )
 
 func Test(t *testing.T) {

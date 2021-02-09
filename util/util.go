@@ -1,4 +1,4 @@
-// Package util provides some common functions for testing.
+// Package util provides some common utilities for testing.
 package util
 
 import (

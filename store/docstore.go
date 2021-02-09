@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ebiiim/btc-gateway/model"
+	"github.com/ebiiim/btcgw/model"
 
 	"gocloud.dev/docstore"
 )

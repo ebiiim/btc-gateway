@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"time"
 
-	"github.com/ebiiim/btc-gateway/model"
+	"github.com/ebiiim/btcgw/model"
 )
 
 // AnchorEntity contains data equalavant to AnchorRecord,

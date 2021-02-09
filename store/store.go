@@ -1,10 +1,14 @@
+/*
+Package store provides ability to store anchors and related data,
+that brings an abstraction layer between the Gateway (package gw) and databases.
+*/
 package store
 
 import (
 	"context"
 	"io"
 
-	"github.com/ebiiim/btc-gateway/model"
+	"github.com/ebiiim/btcgw/model"
 )
 
 // Store provides features to store anchor data in a datastore.

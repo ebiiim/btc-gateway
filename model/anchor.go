@@ -1,3 +1,6 @@
+/*
+Package model provides data structures that represent anchor and database records.
+*/
 package model
 
 import (

@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ebiiim/btc-gateway/model"
+	"github.com/ebiiim/btcgw/model"
 )
 
 type cliCmd string

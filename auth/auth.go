@@ -1,3 +1,9 @@
+/*
+Package auth provides ability to verify API Keys,
+that brings an abstraction layer between
+applications that require API Key authentication
+and authentication providers.
+*/
 package auth
 
 import (

@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ebiiim/btc-gateway/btc"
-	"github.com/ebiiim/btc-gateway/model"
-	"github.com/ebiiim/btc-gateway/util"
+	"github.com/ebiiim/btcgw/btc"
+	"github.com/ebiiim/btcgw/model"
+	"github.com/ebiiim/btcgw/util"
 )
 
 var (

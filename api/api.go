@@ -12,8 +12,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/ebiiim/btc-gateway/gw"
-	"github.com/ebiiim/btc-gateway/model"
+	"github.com/ebiiim/btcgw/gw"
+	"github.com/ebiiim/btcgw/model"
 )
 
 var PrettifyResponseJSON = false
