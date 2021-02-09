@@ -3,7 +3,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -21,8 +20,6 @@ import (
 	"github.com/ebiiim/btcgw/store"
 	"github.com/ebiiim/btcgw/util"
 
-	oapimiddleware "github.com/deepmap/oapi-codegen/pkg/chi-middleware"
-	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/httprate"
@@ -91,7 +88,7 @@ func main() {
 	}
 
 	useMongoDBAtlas()
-	// Setup GatewayService.
+	// Setup Gateway.
 	var err error
 	btcCLI := btc.NewBitcoinCLI(cliPath, btcNet, rpcAddr, rpcPort, rpcUser, rpcPW)
 	docStore := store.NewDocstore(mongoStore())
@@ -100,40 +97,18 @@ func main() {
 		return
 	}
 	gwImpl := gw.NewGatewayImpl(model.BTCTestnet3, btcCLI, docStore)
-	gwService := api.NewGatewayService(gwImpl)
+	// Setup Authenticator.
+	var a auth.Authenticator
+	a = auth.MustNewDocstoreAuth(mongoAuthenticator())
+	// a = &auth.SpecialAuth{}
+
+	// Setup GatewayService.
+	gwService := api.NewGatewayService(gwImpl, a)
 	defer func() {
 		if cErr := gwService.Close(); cErr != nil {
 			log.Printf("%v (captured err: %v)", cErr, err)
 		}
 	}()
-
-	// Setup Authenticator.
-	var a auth.Authenticator
-	a = auth.MustNewDocstoreAuth(mongoAuthenticator())
-	// a = &auth.SpecialAuth{}
-	defer a.Close()
-
-	// Setup Swagger.
-	swagger, err := api.GetSwagger()
-	if err != nil {
-		log.Printf("Could not load swagger spec\n: %s", err)
-		os.Exit(1)
-	}
-	// Skips validating server names.
-	swagger.Servers = nil
-
-	//	Setup validator.
-	validatorOpts := &oapimiddleware.Options{}
-	validatorOpts.Options.AuthenticationFunc = func(ctx context.Context, input *openapi3filter.AuthenticationInput) error {
-		h := input.RequestValidationInput.Request.Header["X-Api-Key"]
-		if h == nil {
-			return errors.New("X-API-KEY not found")
-		}
-		if !a.AuthFunc(ctx, h[0], input.RequestValidationInput.PathParams) {
-			return errors.New("auth failed")
-		}
-		return nil
-	}
 
 	// Setup Chi.
 	r := chi.NewRouter()
@@ -142,8 +117,7 @@ func main() {
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Heartbeat("/healthz"))
-	r.Use(oapimiddleware.OapiRequestValidatorWithOptions(swagger, validatorOpts))
-	r.Use(middleware.SetHeader("Content-Type", "application/json"))
+	r.Use(gwService.OAPIValidator())
 	api.HandlerFromMux(gwService, r)
 	opts := api.ChiServerOptions{
 		BaseURL:     "",

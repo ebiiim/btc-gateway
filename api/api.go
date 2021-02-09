@@ -3,26 +3,31 @@
 package api
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/ebiiim/btcgw/gw"
 	"github.com/ebiiim/btcgw/model"
+
+	oapimiddleware "github.com/deepmap/oapi-codegen/pkg/chi-middleware"
+	"github.com/ebiiim/btcgw/auth"
+	"github.com/getkin/kin-openapi/openapi3filter"
 )
 
 var PrettifyResponseJSON = false
 
-func writeJSON(w io.Writer, v interface{}) {
+func writeJSON(w http.ResponseWriter, v interface{}) {
 	e := json.NewEncoder(w)
 	if PrettifyResponseJSON {
 		e.SetIndent("", "  ")
 	}
+	w.Header().Set("Content-Type", "application/json")
 	e.Encode(v)
 }
 
@@ -35,18 +40,21 @@ var (
 
 	ErrRegisterFailed     = errors.New("btcgw::register_failed")
 	ErrRegisterFailedDesc = "Could not register. There may be a system error."
+
+	ErrCouldNotClose = errors.New("ErrCouldNotClose")
 )
 
-// TODO: shutdown
 // TODO: cache
 type GatewayService struct {
 	gw.Gateway
+	auth.Authenticator
 	ServerInterface
 }
 
-func NewGatewayService(gw gw.Gateway) *GatewayService {
+func NewGatewayService(gw gw.Gateway, authenticator auth.Authenticator) *GatewayService {
 	g := &GatewayService{
-		Gateway: gw,
+		Gateway:       gw,
+		Authenticator: authenticator,
 	}
 	return g
 }
@@ -130,6 +138,40 @@ func (g *GatewayService) PostDomainsDomTransactionsTx(w http.ResponseWriter, r *
 	}
 	w.WriteHeader(http.StatusOK)
 	writeJSON(w, convertAnchorRecord(ar))
+}
+
+func (g *GatewayService) OAPIValidator() func(next http.Handler) http.Handler { // Setup Swagger.
+	swagger, err := GetSwagger()
+	if err != nil {
+		panic(fmt.Sprintf("could not load swagger spec: %s", err))
+	}
+	// Skips validating server names.
+	swagger.Servers = nil
+
+	validatorOpts := &oapimiddleware.Options{}
+	if g.Authenticator == nil {
+		return oapimiddleware.OapiRequestValidatorWithOptions(swagger, validatorOpts)
+	}
+	validatorOpts.Options.AuthenticationFunc = func(ctx context.Context, input *openapi3filter.AuthenticationInput) error {
+		h := input.RequestValidationInput.Request.Header["X-Api-Key"]
+		if h == nil {
+			return errors.New("X-API-KEY not found")
+		}
+		if !g.AuthFunc(ctx, h[0], input.RequestValidationInput.PathParams) {
+			return errors.New("auth failed")
+		}
+		return nil
+	}
+	return oapimiddleware.OapiRequestValidatorWithOptions(swagger, validatorOpts)
+}
+
+func (g *GatewayService) Close() error {
+	err1 := g.Gateway.Close()
+	err2 := g.Authenticator.Close()
+	if err1 != nil || err2 != nil {
+		return fmt.Errorf("%w (Gateway: %v, Authenticator: %v)", ErrCouldNotClose, err1, err2)
+	}
+	return nil
 }
 
 func convertAnchor(a *model.Anchor) Anchor {
