@@ -7,7 +7,7 @@ import (
 	"github.com/ebiiim/btcgw/model"
 )
 
-// AnchorEntity contains data equalavant to AnchorRecord,
+// AnchorEntity contains data equivalent to AnchorRecord,
 // but focuses on placing data in the datastore.
 // In particular, CID is a key field that contains
 // a combined string that starts with BBc-1 domain ID,
