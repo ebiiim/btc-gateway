@@ -1,15 +1,20 @@
 include .env
 export
 
-.PHONY: all gen build test test-local store-create-dynamodb store-delete-dynamodb api-generate-swagger-ui deploy-download-bitcoincore
+.PHONY: all gen build build-btcgw build-apikeycli test test-local api-generate-swagger-ui deploy-download-bitcoincore
 
 all: test build api-generate-swagger-ui
 
 gen:
 	go generate ./...
 
-build: gen
-	go build "-ldflags=-s -w" -trimpath btcgw.go
+build: build-btcgw build-apikeycli
+
+build-btcgw: gen
+	go build "-ldflags=-s -w" -trimpath -o btcgw cmd/btcgw/btcgw.go
+
+build-apikeycli: gen
+	go build "-ldflags=-s -w" -trimpath -o apikey-cli cmd/apikey-cli/apikey-cli.go
 
 test: gen
 	go test -race -cover ./...
@@ -17,17 +22,6 @@ test: gen
 ## localTest needs a bitcoind server.
 test-local: gen
 	go test -count=1 -race -cover -tags localTest ./...
-
-store-create-dynamodb:
-	aws dynamodb create-table \
-    --table-name anchors.btcgw \
-    --attribute-definitions \
-        AttributeName=cid,AttributeType=S \
-    --key-schema AttributeName=cid,KeyType=HASH \
-    --provisioned-throughput ReadCapacityUnits=1,WriteCapacityUnits=1
-
-store-delete-dynamodb:
-	aws dynamodb delete-table --table-name anchors.btcgw
 
 # please serve dist/swagger-ui
 api-generate-swagger-ui:

@@ -47,7 +47,19 @@ func useMemdocstore() string {
 
 func useDynamoDB() string {
 	// Assumes that AWS CLI default profile exists.
-	// Please run `make store-create-dynamodb` first.
+	// Please create a table in DynamoDB first.
+	//
+	// store-create-dynamodb:
+	//   aws dynamodb create-table \
+	//     --table-name anchors.btcgw \
+	//     --attribute-definitions \
+	//       AttributeName=cid,AttributeType=S \
+	//     --key-schema AttributeName=cid,KeyType=HASH \
+	//     --provisioned-throughput ReadCapacityUnits=1,WriteCapacityUnits=1
+	//
+	// store-delete-dynamodb:
+	// 	aws dynamodb delete-table --table-name anchors.btcgw
+	//
 	return fmt.Sprintf("dynamodb://%s.%s?partition_key=%s", tableName, dbName, key)
 }
 
