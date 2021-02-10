@@ -280,9 +280,10 @@ func TestBitcoinCLI_ParseTransactionReceived(t *testing.T) {
 		name         string
 		getTxOutput  string
 		targetAddr   string
+		wantVout     int
 		wantReceived string
 	}{
-		{"confirmed", getTx1, recvAddr1, "0.01158624"},
+		{"confirmed", getTx1, recvAddr1, 0, "0.01158624"},
 	}
 	for _, c := range cases {
 		c := c
@@ -290,10 +291,13 @@ func TestBitcoinCLI_ParseTransactionReceived(t *testing.T) {
 			t.Parallel()
 			buf := bytes.NewBufferString(c.getTxOutput)
 			b := btc.NewBitcoinCLI("", 0, "", "", "", "")
-			recv, err := b.ParseTransactionReceived(buf, c.targetAddr)
+			vout, recv, err := b.ParseTransactionReceived(buf, c.targetAddr)
 			if err != nil {
 				t.Errorf("failed to parse %+v", err)
 				t.Skip()
+			}
+			if vout != c.wantVout {
+				t.Errorf("got %+v but want %+v", recv, c.wantReceived)
 			}
 			if recv != c.wantReceived {
 				t.Errorf("got %+v but want %+v", recv, c.wantReceived)
@@ -309,6 +313,7 @@ func TestBitcoinCLI_CreateRawTransactionForAnchor_DryRun(t *testing.T) {
 	cases := []struct {
 		name        string
 		txid        string
+		vout        int
 		bal         string
 		toAddr      string
 		fee         uint
@@ -316,7 +321,7 @@ func TestBitcoinCLI_CreateRawTransactionForAnchor_DryRun(t *testing.T) {
 		recvAmo     string
 		fullcommand string
 	}{
-		{"normal", txid1, "0.01168624", recvAddr1, 10000, opRet1, recvAmount1, fmt.Sprintf(`%s -chain=test createrawtransaction [{"txid": "%s", "vout": 0}] [{"%s": %s}, {"data": "%s"}]`, path1, txid1, recvAddr1, recvAmount1, opRet1)},
+		{"normal", txid1, 0, "0.01168624", recvAddr1, 10000, opRet1, recvAmount1, fmt.Sprintf(`%s -chain=test createrawtransaction [{"txid": "%s", "vout": 0}] [{"%s": %s}, {"data": "%s"}]`, path1, txid1, recvAddr1, recvAmount1, opRet1)},
 	}
 	for _, c := range cases {
 		c := c
@@ -326,7 +331,7 @@ func TestBitcoinCLI_CreateRawTransactionForAnchor_DryRun(t *testing.T) {
 			ctx := context.Background()
 			bT, _ := hex.DecodeString(c.txid)
 			bOpRet, _ := hex.DecodeString(c.data)
-			_, err := b.CreateRawTransactionForAnchor(ctx, bT, c.bal, c.toAddr, c.fee, bOpRet)
+			_, err := b.CreateRawTransactionForAnchor(ctx, bT, c.vout, c.bal, c.toAddr, c.fee, bOpRet)
 			if !errors.Is(err, btc.ErrDryRun) {
 				t.Errorf("unexpected err %+v", err)
 				t.Skip()

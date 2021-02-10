@@ -286,28 +286,28 @@ func calcFee(bal string, feeSatoshi uint) (string, error) {
 	return fmt.Sprintf("%.8f", f64Bal), err
 }
 
-// ParseTransactionReceived returns received amount of the given Bitcoin address.
+// ParseTransactionReceived returns vout number and received amount of the given Bitcoin address.
 // Only counts the first received amount of the given address.
 // Returns error if no received.
-func (*BitcoinCLI) ParseTransactionReceived(txJSON *bytes.Buffer, recvAddr string) (string, error) {
+func (*BitcoinCLI) ParseTransactionReceived(txJSON *bytes.Buffer, recvAddr string) (int, string, error) {
 	var val map[string]interface{}
 	if err := json.NewDecoder(txJSON).Decode(&val); err != nil {
-		return "", fmt.Errorf("%w (%v)", ErrFailedToDecode, err)
+		return 0, "", fmt.Errorf("%w (%v)", ErrFailedToDecode, err)
 	}
 	// Parse { ..., "details": [ { "address": "abc", "category": "receive", "amount": 0.123 } ] }
 	details, ok := val["details"].([]interface{})
 	if !ok {
-		return "", fmt.Errorf("%w (root->details)", ErrFailedToDecode)
+		return 0, "", fmt.Errorf("%w (root->details)", ErrFailedToDecode)
 	}
 	for idx, d := range details {
 		dd, ok := d.(map[string]interface{})
 		if !ok {
-			return "", fmt.Errorf("%w (root->details[%d])", ErrFailedToDecode, idx)
+			return 0, "", fmt.Errorf("%w (root->details[%d])", ErrFailedToDecode, idx)
 		}
 		// category == receive ? pass : continue
 		cat, ok := dd["category"].(string)
 		if !ok {
-			return "", fmt.Errorf("%w (root->details[%d]->category)", ErrFailedToDecode, idx)
+			return 0, "", fmt.Errorf("%w (root->details[%d]->category)", ErrFailedToDecode, idx)
 		}
 		if cat != "receive" {
 			continue
@@ -315,7 +315,7 @@ func (*BitcoinCLI) ParseTransactionReceived(txJSON *bytes.Buffer, recvAddr strin
 		// address == ${recvAddr} ? pass : continue
 		addr, ok := dd["address"].(string)
 		if !ok {
-			return "", fmt.Errorf("%w (root->details[%d]->address)", ErrFailedToDecode, idx)
+			return 0, "", fmt.Errorf("%w (root->details[%d]->address)", ErrFailedToDecode, idx)
 		}
 		if addr != recvAddr {
 			continue
@@ -323,11 +323,16 @@ func (*BitcoinCLI) ParseTransactionReceived(txJSON *bytes.Buffer, recvAddr strin
 		// amount is float ? return : ErrFailedToDecode
 		amo, ok := dd["amount"].(float64)
 		if !ok {
-			return "", fmt.Errorf("%w (root->details[%d]->amount)", ErrFailedToDecode, idx)
+			return 0, "", fmt.Errorf("%w (root->details[%d]->amount)", ErrFailedToDecode, idx)
 		}
-		return fmt.Sprintf("%.8f", amo), nil
+		// vout is int ? return : ErrFailedToDecode
+		fvout, ok := dd["vout"].(float64)
+		if !ok {
+			return 0, "", fmt.Errorf("%w (root->details[%d]->vout)", ErrFailedToDecode, idx)
+		}
+		return int(fvout), fmt.Sprintf("%.8f", amo), nil
 	}
-	return "", fmt.Errorf("%w (not found)", ErrFailedToDecode)
+	return 0, "", fmt.Errorf("%w (not found)", ErrFailedToDecode)
 }
 
 // CreateRawTransactionForAnchor creates a raw transaction with one vout and one OP_RETURN.
@@ -341,14 +346,14 @@ func (*BitcoinCLI) ParseTransactionReceived(txJSON *bytes.Buffer, recvAddr strin
 //   - data sets OP_RETURN data. Up to 80 bytes.
 //
 // Possible errors: ErrInvalidFee|ErrExitCode1|ErrUnexpectedExitCode|ErrFailedToExec
-func (b *BitcoinCLI) CreateRawTransactionForAnchor(ctx context.Context, fromTxid []byte, balance string, toAddr string, fee uint, data []byte) ([]byte, error) {
+func (b *BitcoinCLI) CreateRawTransactionForAnchor(ctx context.Context, fromTxid []byte, vout int, balance string, toAddr string, fee uint, data []byte) ([]byte, error) {
 	sFee, err := calcFee(balance, fee)
 	if err != nil {
 		return nil, fmt.Errorf("%w (%v)", ErrInvalidFee, err)
 	}
-	argFmt0 := `[{"txid": "%s", "vout": 0}]`
+	argFmt0 := `[{"txid": "%s", "vout": %d}]`
 	argFmt1 := `[{"%s": %s}, {"data": "%s"}]`
-	arg0 := fmt.Sprintf(argFmt0, hex.EncodeToString(fromTxid))
+	arg0 := fmt.Sprintf(argFmt0, hex.EncodeToString(fromTxid), vout)
 	arg1 := fmt.Sprintf(argFmt1, toAddr, sFee, hex.EncodeToString(data))
 	stdout, stderr, err := b.run(ctx, []string{cmdCreateRawTransaction, arg0, arg1})
 	if err != nil {
@@ -476,7 +481,7 @@ func (b *BitcoinCLI) PutAnchor(ctx context.Context, a *model.Anchor) ([]byte, er
 	var bufR, bufC bytes.Buffer
 	w := io.MultiWriter(&bufR, &bufC)
 	io.Copy(w, fromTx)
-	balance, err := b.ParseTransactionReceived(&bufR, b.xBTCAddr)
+	vout, balance, err := b.ParseTransactionReceived(&bufR, b.xBTCAddr)
 	if err != nil {
 		return nil, fmt.Errorf("%w (PutAnchor)", err)
 	}
@@ -493,7 +498,7 @@ func (b *BitcoinCLI) PutAnchor(ctx context.Context, a *model.Anchor) ([]byte, er
 	opRet := tmp[:]
 
 	// Create, sign, and send the anchor transaction.
-	rawTx, err := b.CreateRawTransactionForAnchor(ctx, b.xTransactionID, balance, b.xBTCAddr, txFee, opRet)
+	rawTx, err := b.CreateRawTransactionForAnchor(ctx, b.xTransactionID, vout, balance, b.xBTCAddr, txFee, opRet)
 	if err != nil {
 		return nil, fmt.Errorf("%w (PutAnchor)", err)
 	}

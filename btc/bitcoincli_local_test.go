@@ -79,7 +79,7 @@ func Test_Local_BitcoinCLI_CreateRawTransactionForAnchor(t *testing.T) {
 	defer cf()
 	bT, _ := hex.DecodeString(txid)
 	bOpRet, _ := hex.DecodeString(opRet)
-	bs, err := b.CreateRawTransactionForAnchor(ctx, bT, unspent, recvAddr, fee, bOpRet)
+	bs, err := b.CreateRawTransactionForAnchor(ctx, bT, 0, unspent, recvAddr, fee, bOpRet)
 	if err != nil {
 		t.Error(err)
 		t.Skip()
@@ -174,9 +174,9 @@ func Test_Local_BitcoinCLI_GetTransaction(t *testing.T) {
 	if err1 != nil || err2 != nil || !reflect.DeepEqual(gotHex, wantHex) {
 		t.Errorf("wrong hex got=%+v (err=%+v) want=%+v (err=%+v)", gotHex, err1, wantHex, err2)
 	}
-	gotAmo, err1 := b.ParseTransactionReceived(&gr, recvAddr)
-	wantAmo, err2 := b.ParseTransactionReceived(&wr, recvAddr)
-	if err1 != nil || err2 != nil || gotAmo != wantAmo {
+	gotVout, gotAmo, err1 := b.ParseTransactionReceived(&gr, recvAddr)
+	wantVout, wantAmo, err2 := b.ParseTransactionReceived(&wr, recvAddr)
+	if err1 != nil || err2 != nil || gotVout != wantVout || gotAmo != wantAmo {
 		t.Errorf("wrong amount got=%+v (err=%+v) want=%+v (err=%+v)", gotAmo, err1, wantAmo, err2)
 	}
 }
