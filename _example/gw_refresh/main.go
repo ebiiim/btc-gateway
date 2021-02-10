@@ -95,7 +95,7 @@ func main() {
 
 	// Setup Gateway.
 	var g gw.Gateway
-	gImpl := gw.NewGatewayImpl(model.BTCTestnet3, b, st)
+	gImpl := gw.NewGatewayImpl(model.BTCTestnet3, b, nil, st) // Set Wallet nil because we don't PutAnchor in this example.
 	g = gImpl
 
 	// Get the record and update its Note.

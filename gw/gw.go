@@ -55,7 +55,10 @@ var (
 type GatewayImpl struct {
 	BTCNet model.BTCNet
 	BTC    btc.BTC
+	Wallet btc.Wallet
 	Store  store.Store
+
+	xBTCImpl btc.BitcoinCLI
 }
 
 // NewGatewayImpl initializes a GatewayImpl.
@@ -63,14 +66,22 @@ type GatewayImpl struct {
 // Parameters:
 //   - bn sets Bitcoin network to anchor.
 //   - b sets btc.BTC.
+//   - w sets btc.Wallet.
 //   - s sets store.Store.
 //
 // bn must be same as b.BTCNet.
-func NewGatewayImpl(bn model.BTCNet, b btc.BTC, s store.Store) *GatewayImpl {
+// b must be *btc.BitcoinCLI for now.
+func NewGatewayImpl(bn model.BTCNet, b btc.BTC, w btc.Wallet, s store.Store) *GatewayImpl {
+	bImpl, ok := b.(*btc.BitcoinCLI)
+	if !ok {
+		panic("NewGatewayImpl: b must be *btc.BitcoinCLI for now")
+	}
 	g := &GatewayImpl{
-		BTCNet: bn,
-		BTC:    b,
-		Store:  s,
+		BTCNet:   bn,
+		BTC:      b,
+		Wallet:   w,
+		Store:    s,
+		xBTCImpl: *bImpl,
 	}
 	return g
 }
@@ -79,9 +90,23 @@ var timeNow = time.Now
 
 func (g *GatewayImpl) RegisterTransaction(ctx context.Context, domID, txID []byte) (btcTXID []byte, err error) {
 	a := model.NewAnchor(g.BTCNet, timeNow(), domID, txID)
+	// Set UTXO if Wallet is set.
+	if g.Wallet != nil {
+		tx, addr, err := g.Wallet.NextUTXO()
+		if err != nil {
+			return nil, fmt.Errorf("%w (%v)", ErrCouldNotPutAnchor, err)
+		}
+		g.xBTCImpl.XSetUTXO(tx, addr)
+	}
 	txid, err := g.BTC.PutAnchor(ctx, a)
 	if err != nil {
 		return nil, fmt.Errorf("%w (%v)", ErrCouldNotPutAnchor, err)
+	}
+	// Update Wallet if it is set.
+	if g.Wallet != nil {
+		if err := g.Wallet.AddUTXO(g.xBTCImpl.XGetUTXO()); err != nil {
+			return nil, fmt.Errorf("%w (%v)", ErrCouldNotPutAnchor, err)
+		}
 	}
 	return txid, err
 }

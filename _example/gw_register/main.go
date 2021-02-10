@@ -81,7 +81,7 @@ func main() {
 
 	// Setup Gateway.
 	var g gw.Gateway
-	gImpl := gw.NewGatewayImpl(model.BTCTestnet3, b, st)
+	gImpl := gw.NewGatewayImpl(model.BTCTestnet3, b, nil, st) // Set Wallet nil because we call XSetUTXO manually in this example.
 	g = gImpl
 
 	// Define Anchor data.
@@ -91,7 +91,7 @@ func main() {
 	// Set UTXO and Bitcoin Address for PutAnchor.
 	utxo := util.MustDecodeHexString("6928e1c6478d1f55ed1a5d86e1ab24669a14f777b879bbb25c746543810bf916")
 	btcAddr := "tb1qhexc7d0fzex7lrzw3l0j2dmvhgegt02ckfdzjr"
-	xCLI.XPrepareAnchor(utxo, btcAddr)
+	xCLI.XSetUTXO(utxo, btcAddr)
 
 	// Anchor a BBc-1 transaction in Bitcoin block chain.
 	ctx, cancelFunc := context.WithTimeout(context.Background(), 30*time.Second)
