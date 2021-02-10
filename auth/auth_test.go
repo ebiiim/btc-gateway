@@ -32,7 +32,7 @@ func TestSpecialAuth(t *testing.T) {
 }
 
 //
-// Do not parallelize Authenticator tests because memdocstore is NOT thread-safe.
+// Do not parallelize DocstoreAuth tests because memdocstore is NOT thread-safe.
 //
 
 func dummyNextKey(key string) auth.NextKeyFunc {
@@ -43,7 +43,7 @@ func dummyNextKey(key string) auth.NextKeyFunc {
 var (
 	testdb1 = "testdata/apikeys1.db"
 	conn1   = "mem://auth_test_do/key?filename=" + testdb1
-	conn2   = "mem://auth_test_gen/key"
+	conn2   = "mem://auth_test/key"
 )
 
 var (
@@ -76,7 +76,7 @@ var (
 	}
 )
 
-func TestAuthenticator_Do(t *testing.T) {
+func TestDocstoreAuth_Do(t *testing.T) {
 	cases := []struct {
 		name      string
 		conn      string
@@ -115,7 +115,7 @@ func TestAuthenticator_Do(t *testing.T) {
 	}
 }
 
-func TestAuthenticator_Generate(t *testing.T) {
+func TestDocstoreAuth_Generate(t *testing.T) {
 	cases := []struct {
 		name    string
 		conn    string
@@ -150,7 +150,7 @@ func TestAuthenticator_Generate(t *testing.T) {
 	}
 }
 
-func TestAuthenticator_Generate_Error(t *testing.T) {
+func TestDocstoreAuth_Generate_Error(t *testing.T) {
 	cases := []struct {
 		name    string
 		conn    string
@@ -184,7 +184,7 @@ func TestAuthenticator_Generate_Error(t *testing.T) {
 	}
 }
 
-func TestAuthenticator_Delete(t *testing.T) {
+func TestDocstoreAuth_Delete(t *testing.T) {
 	cases := []struct {
 		name    string
 		conn    string
@@ -223,7 +223,7 @@ func TestAuthenticator_Delete(t *testing.T) {
 	}
 }
 
-func TestAuthenticator_Delete_NotFound(t *testing.T) {
+func TestDocstoreAuth_Delete_NotFound(t *testing.T) {
 	cases := []struct {
 		name string
 		conn string

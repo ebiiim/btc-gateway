@@ -1,4 +1,4 @@
-// apikey-cli is an CLI tool to manage API Keys.
+// apikey-cli is a CLI tool to manage API Keys.
 package main
 
 import (
