@@ -32,8 +32,13 @@ var (
 func TestDocstoreWallet_UTXOs(t *testing.T) {
 	utxos1 := btc.MustNewDocstoreWallet(conn2, waddr1)
 
-	// dequeue from [] -> [] err
-	txid, addr, err := utxos1.NextUTXO()
+	// peek and dequeue from [] -> [] err
+	txid, addr, err := utxos1.PeekNextUTXO()
+	if txid != nil || addr != "" || !errors.Is(err, btc.ErrCouldNotGetNextUTXO) {
+		t.Errorf("want empty but got txid=%v, addr=%v", txid, addr)
+		t.Skip()
+	}
+	txid, addr, err = utxos1.NextUTXO()
 	if txid != nil || addr != "" || !errors.Is(err, btc.ErrCouldNotGetNextUTXO) {
 		t.Errorf("want empty but got txid=%v, addr=%v", txid, addr)
 		t.Skip()
@@ -43,7 +48,12 @@ func TestDocstoreWallet_UTXOs(t *testing.T) {
 		t.Error(err)
 		t.Skip()
 	}
-	// dequeue from [utxo1] -> [] utxo1
+	// peek & dequeue from [utxo1] -> [] utxo1
+	txid, addr, err = utxos1.PeekNextUTXO()
+	if bytes.Compare(txid, wtx1) != 0 || addr != waddr1 || err != nil {
+		t.Error("1")
+		t.Skip()
+	}
 	txid, addr, err = utxos1.NextUTXO()
 	if bytes.Compare(txid, wtx1) != 0 || addr != waddr1 || err != nil {
 		t.Error("1")

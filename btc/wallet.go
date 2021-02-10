@@ -31,6 +31,7 @@ var (
 
 type Wallet interface {
 	NextUTXO() (txid []byte, addr string, err error)
+	PeekNextUTXO() (txid []byte, addr string, err error)
 	AddUTXO(txid []byte, addr string) error
 	io.Closer
 }
@@ -39,7 +40,7 @@ var _ Wallet = (*DocstoreWallet)(nil)
 
 type utxo struct {
 	TXID []byte
-	Addr string // TODO: We don't need Addr here. It's same with w.Addr.
+	Addr string // This is always same with w.Addr for now.
 }
 
 type utxosDoc struct {
@@ -65,6 +66,14 @@ func (w *DocstoreWallet) dequeue() (utxo, error) {
 	}
 	v := w.q[0]
 	w.q = w.q[1:]
+	return v, nil
+}
+
+func (w *DocstoreWallet) peek() (utxo, error) {
+	if len(w.q) == 0 {
+		return utxo{}, errors.New("empty queue")
+	}
+	v := w.q[0]
 	return v, nil
 }
 
@@ -145,6 +154,14 @@ func (w *DocstoreWallet) NextUTXO() (txid []byte, addr string, err error) {
 	}
 	// Save on every NextUTXO call.
 	if err := w.save(); err != nil {
+		return nil, "", fmt.Errorf("%w, %v", ErrCouldNotGetNextUTXO, err)
+	}
+	return v.TXID, v.Addr, nil
+}
+
+func (w *DocstoreWallet) PeekNextUTXO() (txid []byte, addr string, err error) {
+	v, err := w.peek()
+	if err != nil {
 		return nil, "", fmt.Errorf("%w, %v", ErrCouldNotGetNextUTXO, err)
 	}
 	return v.TXID, v.Addr, nil

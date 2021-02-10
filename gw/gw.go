@@ -92,7 +92,7 @@ func (g *GatewayImpl) RegisterTransaction(ctx context.Context, domID, txID []byt
 	a := model.NewAnchor(g.BTCNet, timeNow(), domID, txID)
 	// Set UTXO if Wallet is set.
 	if g.Wallet != nil {
-		tx, addr, err := g.Wallet.NextUTXO()
+		tx, addr, err := g.Wallet.PeekNextUTXO()
 		if err != nil {
 			return nil, fmt.Errorf("%w (%v)", ErrCouldNotPutAnchor, err)
 		}
@@ -104,6 +104,9 @@ func (g *GatewayImpl) RegisterTransaction(ctx context.Context, domID, txID []byt
 	}
 	// Update Wallet if it is set.
 	if g.Wallet != nil {
+		if _, _, err := g.Wallet.NextUTXO(); err != nil {
+			return nil, fmt.Errorf("%w (%v)", ErrCouldNotPutAnchor, err)
+		}
 		if err := g.Wallet.AddUTXO(g.xBTCImpl.XGetUTXO()); err != nil {
 			return nil, fmt.Errorf("%w (%v)", ErrCouldNotPutAnchor, err)
 		}
