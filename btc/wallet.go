@@ -39,7 +39,7 @@ var _ Wallet = (*DocstoreWallet)(nil)
 
 type utxo struct {
 	TXID []byte
-	Addr string
+	Addr string // TODO: We don't need Addr here. It's same with w.Addr.
 }
 
 type utxosDoc struct {
@@ -83,8 +83,8 @@ func (w *DocstoreWallet) load() error {
 
 func (w *DocstoreWallet) save() error {
 	doc := &utxosDoc{
-		Addr: w.addr,
-		UTXOs:  w.q,
+		Addr:  w.addr,
+		UTXOs: w.q,
 	}
 	ctx, cancelFunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelFunc()
@@ -114,10 +114,10 @@ func (w *DocstoreWallet) open() error {
 // TODO: put all UTXOs on every save is too heavy...
 func MustNewDocstoreWallet(conn string, addr string) *DocstoreWallet {
 	w := &DocstoreWallet{
-		q:      nil,
+		q:    nil,
 		addr: addr,
-		conn:   conn,
-		coll:   nil,
+		conn: conn,
+		coll: nil,
 	}
 	if err := w.open(); err != nil {
 		panic(fmt.Sprintf("%v conn=%s", err, conn))
