@@ -34,6 +34,9 @@ var (
 	ErrRegisterFailed     = errors.New("btcgw::register_failed")
 	ErrRegisterFailedDesc = "Could not register. There may be a system error."
 
+	ErrTxAlreadyExists     = errors.New("btcgw::tx_already_exists")
+	ErrTxAlreadyExistsDesc = "Transaction already exists."
+
 	ErrCouldNotClose = errors.New("ErrCouldNotClose")
 )
 
@@ -111,11 +114,24 @@ func (g *GatewayService) PostDomainsDomTransactionsTx(w http.ResponseWriter, r *
 		return
 	}
 	ctx := r.Context()
-	_, err := g.RegisterTransaction(ctx, bdom, btx)
+	_, err := g.GetRecord(ctx, bdom, btx)
+	if err == nil {
+		sendGatewayServiceError(w, http.StatusInternalServerError, ErrTxAlreadyExists, ErrTxAlreadyExistsDesc)
+		return
+	}
+	btctx, err := g.RegisterTransaction(ctx, bdom, btx)
 	if err != nil {
 		log.Println(err)
 	}
 	if errors.Is(err, gw.ErrCouldNotPutAnchor) {
+		sendGatewayServiceError(w, http.StatusInternalServerError, ErrRegisterFailed, ErrRegisterFailedDesc)
+		return
+	}
+	err = g.StoreRecord(ctx, btctx)
+	if err != nil {
+		log.Println(err)
+	}
+	if errors.Is(err, gw.ErrCouldNotStoreRecord) {
 		sendGatewayServiceError(w, http.StatusInternalServerError, ErrRegisterFailed, ErrRegisterFailedDesc)
 		return
 	}
