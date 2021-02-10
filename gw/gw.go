@@ -58,7 +58,7 @@ type GatewayImpl struct {
 	Wallet btc.Wallet
 	Store  store.Store
 
-	xBTCImpl btc.BitcoinCLI
+	xBTCImpl *btc.BitcoinCLI
 }
 
 // NewGatewayImpl initializes a GatewayImpl.
@@ -81,7 +81,7 @@ func NewGatewayImpl(bn model.BTCNet, b btc.BTC, w btc.Wallet, s store.Store) *Ga
 		BTC:      b,
 		Wallet:   w,
 		Store:    s,
-		xBTCImpl: *bImpl,
+		xBTCImpl: bImpl,
 	}
 	return g
 }
