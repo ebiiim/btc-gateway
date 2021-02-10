@@ -1,3 +1,8 @@
+# project
+main
+*.db
+.env
+
 # bitcoin
 bitcoind
 bitcoin-cli
@@ -6,8 +11,4 @@ bitcoin-wallet
 # testdata
 !anchors1.db
 !apikeys1.db
-
-# project
-main
-*.db
-.env
+!wallet1.db
