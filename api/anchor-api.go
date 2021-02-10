@@ -1,17 +1,17 @@
-//go:generate go run github.com/deepmap/oapi-codegen/cmd/oapi-codegen -package api -generate "types,chi-server,spec" -o api.gen.go openapi.yml
+//go:generate go run github.com/deepmap/oapi-codegen/cmd/oapi-codegen -package anchor -generate "types,chi-server,spec" -include-tags "Anchor" -o anchor/api.gen.go openapi.yml
 
 package api
 
 import (
 	"context"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"time"
 
+	"github.com/ebiiim/btcgw/api/anchor"
 	"github.com/ebiiim/btcgw/gw"
 	"github.com/ebiiim/btcgw/model"
 
@@ -20,16 +20,9 @@ import (
 	"github.com/getkin/kin-openapi/openapi3filter"
 )
 
-var PrettifyResponseJSON = false
+// export
 
-func writeJSON(w http.ResponseWriter, v interface{}) {
-	e := json.NewEncoder(w)
-	if PrettifyResponseJSON {
-		e.SetIndent("", "  ")
-	}
-	w.Header().Set("Content-Type", "application/json")
-	e.Encode(v)
-}
+var HandlerFromMux = anchor.HandlerFromMux
 
 var (
 	ErrInvalidID     = errors.New("btcgw::invalid_id")
@@ -48,7 +41,7 @@ var (
 type GatewayService struct {
 	gw.Gateway
 	auth.Authenticator
-	ServerInterface
+	anchor.ServerInterface
 }
 
 func NewGatewayService(gw gw.Gateway, authenticator auth.Authenticator) *GatewayService {
@@ -64,12 +57,11 @@ func sendGatewayServiceError(w http.ResponseWriter, code int, err error, desc st
 	if desc != "" {
 		pDesc = &desc
 	}
-	gsErr := Error{
+	gsErr := anchor.Error{
 		Error:            err.Error(),
 		ErrorDescription: pDesc,
 	}
-	w.WriteHeader(code)
-	writeJSON(w, gsErr)
+	WriteJSON(w, code, gsErr)
 }
 
 func (g *GatewayService) GetDomainsDomTransactionsTx(w http.ResponseWriter, r *http.Request, dom string, tx string) {
@@ -88,8 +80,7 @@ func (g *GatewayService) GetDomainsDomTransactionsTx(w http.ResponseWriter, r *h
 		sendGatewayServiceError(w, http.StatusNotFound, ErrTxNotFound, ErrTxNotFoundDesc)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	writeJSON(w, convertAnchorRecord(ar))
+	WriteJSON(w, http.StatusOK, convertAnchorRecord(ar))
 }
 
 func (g *GatewayService) PatchDomainsDomTransactionsTx(w http.ResponseWriter, r *http.Request, dom string, tx string) {
@@ -136,12 +127,11 @@ func (g *GatewayService) PostDomainsDomTransactionsTx(w http.ResponseWriter, r *
 		sendGatewayServiceError(w, http.StatusInternalServerError, ErrRegisterFailed, ErrRegisterFailedDesc)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	writeJSON(w, convertAnchorRecord(ar))
+	WriteJSON(w, http.StatusOK, convertAnchorRecord(ar))
 }
 
 func (g *GatewayService) OAPIValidator() func(next http.Handler) http.Handler { // Setup Swagger.
-	swagger, err := GetSwagger()
+	swagger, err := anchor.GetSwagger()
 	if err != nil {
 		panic(fmt.Sprintf("could not load swagger spec: %s", err))
 	}
@@ -174,8 +164,8 @@ func (g *GatewayService) Close() error {
 	return nil
 }
 
-func convertAnchor(a *model.Anchor) Anchor {
-	return Anchor{
+func convertAnchor(a *model.Anchor) anchor.Anchor {
+	return anchor.Anchor{
 		Bbc1dom: hex.EncodeToString(a.BBc1DomainID[:]),
 		Bbc1tx:  hex.EncodeToString(a.BBc1TransactionID[:]),
 		Chain:   a.BTCNet.String(),
@@ -184,7 +174,7 @@ func convertAnchor(a *model.Anchor) Anchor {
 	}
 }
 
-func convertAnchorRecord(ar *model.AnchorRecord) AnchorRecord {
+func convertAnchorRecord(ar *model.AnchorRecord) anchor.AnchorRecord {
 	var name *string = nil
 	if ar.BBc1DomainName != "" {
 		name = &(ar.BBc1DomainName)
@@ -193,7 +183,7 @@ func convertAnchorRecord(ar *model.AnchorRecord) AnchorRecord {
 	if ar.Note != "" {
 		note = &(ar.Note)
 	}
-	return AnchorRecord{
+	return anchor.AnchorRecord{
 		Anchor:        convertAnchor(ar.Anchor),
 		Bbc1name:      name,
 		Btctx:         hex.EncodeToString(ar.BTCTransactionID),

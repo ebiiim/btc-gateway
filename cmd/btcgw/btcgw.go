@@ -119,12 +119,6 @@ func main() {
 	r.Use(middleware.Heartbeat("/healthz"))
 	r.Use(gwService.OAPIValidator())
 	api.HandlerFromMux(gwService, r)
-	opts := api.ChiServerOptions{
-		BaseURL:     "",
-		BaseRouter:  r,
-		Middlewares: nil,
-	}
-	api.HandlerWithOptions(gwService, opts)
 
 	// Serve.
 	addr := fmt.Sprintf("0.0.0.0:%d", *port)
