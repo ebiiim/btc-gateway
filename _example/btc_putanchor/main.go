@@ -39,7 +39,7 @@ func main() {
 	// Set UTXO and Bitcoin Address for PutAnchor.
 	utxo := util.MustDecodeHexString("57511f74c3836c0d4d62a6183fa54e600372e1aed5b5be2f78ef5b766a314a5d")
 	btcAddr := "tb1qhexc7d0fzex7lrzw3l0j2dmvhgegt02ckfdzjr"
-	xCLI.XPrepareAnchor(utxo, btcAddr)
+	xCLI.XSetUTXO(utxo, btcAddr)
 
 	// Put an Anchor in Bitcoin block chain.
 	ctx, cancelFunc := context.WithTimeout(context.Background(), 30*time.Second)

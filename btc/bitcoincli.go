@@ -86,7 +86,7 @@ type BitcoinCLI struct {
 	rpcUser     string
 	rpcPassword string
 
-	// Set by XPrepareAnchor and used by PutAnchor only.
+	// Set by XSetUTXO and used by PutAnchor only.
 	xBTCAddr       string
 	xTransactionID []byte
 }
@@ -435,12 +435,20 @@ const (
 // txFee sets fee.
 var txFee uint = feeNormal
 
-// XPrepareAnchor sets b.xTransactionID and b.xBTCAddr.
+// XSetUTXO sets b.xTransactionID and b.xBTCAddr.
 // As b.PutAnchor does not update b.xTransactionID after sending the transaction,
-// this method should be called every time after PutAnchor (or create a new BitcoinCLI instance).
-func (b *BitcoinCLI) XPrepareAnchor(txid []byte, btcAddr string) {
+// this method should be called in cases of:
+//   - Every time before calling PutAnchor, the caller should also call this method to set UTXO to use.
+//   - Every time after calling PutAnchor, b call this method to set the next UTXO.
+func (b *BitcoinCLI) XSetUTXO(txid []byte, btcAddr string) {
 	b.xTransactionID = txid
 	b.xBTCAddr = btcAddr
+}
+
+// XGetUTXO returns b.xTransactionID and b.xBTCAddr.
+// Please see XPutUTXO.
+func (b *BitcoinCLI) XGetUTXO() (txid []byte, btcAddr string) {
+	return b.xTransactionID, b.xBTCAddr
 }
 
 const (
@@ -501,7 +509,8 @@ func (b *BitcoinCLI) PutAnchor(ctx context.Context, a *model.Anchor) ([]byte, er
 	if err != nil {
 		return nil, fmt.Errorf("%w (PutAnchor)", err)
 	}
-
+	// Set the next UTXO, the caller can get it by calling b.XGetUTXO.
+	b.XSetUTXO(sentTxid, b.xBTCAddr)
 	return sentTxid, nil
 }
 
