@@ -457,7 +457,8 @@ func (b *BitcoinCLI) XGetUTXO() (txid []byte, btcAddr string) {
 }
 
 const (
-	leastConfirmationNeeded = 6
+	// If an UTXO has same sender and receiver, we don't have to wait for confirmation before using.
+	leastConfirmationNeeded = 0
 )
 
 // PutAnchor anchors the given Anchor by sending a Bitcoin transaction and returns its transaction ID.
