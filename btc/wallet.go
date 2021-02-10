@@ -12,6 +12,8 @@ import (
 	"gocloud.dev/docstore"
 )
 
+// TODO: we can manage UTXO statelessly by using `bitcoin-cli listunspent`.
+
 func init() {
 	gob.Register(map[string]interface{}{})
 	gob.Register([]interface{}{})
@@ -41,13 +43,13 @@ type utxo struct {
 }
 
 type utxosDoc struct {
-	DocKey string `docstore:"dockey"`
-	UTXOs  []utxo `docstore:"utxos"`
+	Addr  string `docstore:"addr"`
+	UTXOs []utxo `docstore:"utxos"`
 }
 
 type DocstoreWallet struct {
-	q      []utxo
-	dockey string
+	q    []utxo
+	addr string
 
 	conn string
 	coll *docstore.Collection
@@ -68,7 +70,7 @@ func (w *DocstoreWallet) dequeue() (utxo, error) {
 
 func (w *DocstoreWallet) load() error {
 	doc := &utxosDoc{
-		DocKey: w.dockey,
+		Addr: w.addr,
 	}
 	ctx, cancelFunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelFunc()
@@ -81,7 +83,7 @@ func (w *DocstoreWallet) load() error {
 
 func (w *DocstoreWallet) save() error {
 	doc := &utxosDoc{
-		DocKey: w.dockey,
+		Addr: w.addr,
 		UTXOs:  w.q,
 	}
 	ctx, cancelFunc := context.WithTimeout(context.Background(), 5*time.Second)
@@ -106,14 +108,14 @@ func (w *DocstoreWallet) open() error {
 //
 // Parameters:
 //   - conn sets connection string.
-//   - dockey sets document name.
+//   - addr sets document name (uses Bitcoin addresses).
 //
 // DocstoreWallet puts all UTXOs in a single document specified by name.
 // TODO: put all UTXOs on every save is too heavy...
-func MustNewDocstoreWallet(conn string, dockey string) *DocstoreWallet {
+func MustNewDocstoreWallet(conn string, addr string) *DocstoreWallet {
 	w := &DocstoreWallet{
 		q:      nil,
-		dockey: dockey,
+		addr: addr,
 		conn:   conn,
 		coll:   nil,
 	}
@@ -121,7 +123,7 @@ func MustNewDocstoreWallet(conn string, dockey string) *DocstoreWallet {
 		panic(fmt.Sprintf("%v conn=%s", err, conn))
 	}
 	if err := w.load(); err != nil {
-		log.Printf("MustNewDocstoreWallet: dockey=%s not found, create a new doc\n", dockey)
+		log.Printf("MustNewDocstoreWallet: addr=%s not found, create a new doc\n", addr)
 	}
 	return w
 }

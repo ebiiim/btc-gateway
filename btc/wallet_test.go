@@ -18,22 +18,19 @@ import (
 // Assumes tests will be run from package root.
 var (
 	testdb1 = "testdata/wallet1.db"
-	conn1   = "mem://wallet_test/dockey?filename=" + testdb1
-	conn2   = "mem://wallet_test/dockey"
+	conn1   = "mem://wallet_test/addr?filename=" + testdb1
+	conn2   = "mem://wallet_test/addr"
 )
 
 var (
-	dockey = "abc"
-	wtx1   = util.MustDecodeHexString("123456")
 	waddr1 = "walletaddr0001"
+	wtx1   = util.MustDecodeHexString("123456")
 	wtx2   = util.MustDecodeHexString("654321")
-	waddr2 = "walletaddr0002"
 	wtx3   = util.MustDecodeHexString("0123456789abcdef0123456789abcdef")
-	waddr3 = "walletaddr0003"
 )
 
 func TestDocstoreWallet_UTXOs(t *testing.T) {
-	utxos1 := btc.MustNewDocstoreWallet(conn2, dockey)
+	utxos1 := btc.MustNewDocstoreWallet(conn2, waddr1)
 
 	// dequeue from [] -> [] err
 	txid, addr, err := utxos1.NextUTXO()
@@ -62,8 +59,8 @@ func TestDocstoreWallet_UTXOs(t *testing.T) {
 	// enqueue utxo2 to [] -> [utxo1, utxo2]
 	// enqueue utxo3 to [] -> [utxo1, utxo2, utxo3]
 	err1 := utxos1.AddUTXO(wtx1, waddr1)
-	err2 := utxos1.AddUTXO(wtx2, waddr2)
-	err3 := utxos1.AddUTXO(wtx3, waddr3)
+	err2 := utxos1.AddUTXO(wtx2, waddr1)
+	err3 := utxos1.AddUTXO(wtx3, waddr1)
 	if err1 != nil || err2 != nil || err3 != nil {
 		t.Error("2")
 		t.Skip()
@@ -76,13 +73,13 @@ func TestDocstoreWallet_UTXOs(t *testing.T) {
 	}
 	// dequeue from [utxo2, utxo3] -> [utxo3] utxo2
 	txid, addr, err = utxos1.NextUTXO()
-	if bytes.Compare(txid, wtx2) != 0 || addr != waddr2 || err != nil {
+	if bytes.Compare(txid, wtx2) != 0 || addr != waddr1 || err != nil {
 		t.Error("4")
 		t.Skip()
 	}
 	// dequeue from [utxo3] -> [] utxo3
 	txid, addr, err = utxos1.NextUTXO()
-	if bytes.Compare(txid, wtx3) != 0 || addr != waddr3 || err != nil {
+	if bytes.Compare(txid, wtx3) != 0 || addr != waddr1 || err != nil {
 		t.Error("5")
 		t.Skip()
 	}
@@ -93,7 +90,7 @@ func TestDocstoreWallet_UTXOs(t *testing.T) {
 }
 
 func TestNewDocstoreWallet(t *testing.T) {
-	utxos1 := btc.MustNewDocstoreWallet(conn1, dockey)
+	utxos1 := btc.MustNewDocstoreWallet(conn1, waddr1)
 	// dequeue from [utxo1, utxo2, utxo3] -> [utxo2, utxo3] utxo1
 	// dequeue from [utxo2, utxo3] -> [utxo3] utxo2
 	// dequeue from [utxo3] -> [] utxo3
@@ -107,12 +104,12 @@ func TestNewDocstoreWallet(t *testing.T) {
 		t.Skip()
 	}
 	txid, addr, err = utxos1.NextUTXO()
-	if bytes.Compare(txid, wtx2) != 0 || addr != waddr2 || err != nil {
+	if bytes.Compare(txid, wtx2) != 0 || addr != waddr1 || err != nil {
 		t.Error("2")
 		t.Skip()
 	}
 	txid, addr, err = utxos1.NextUTXO()
-	if bytes.Compare(txid, wtx3) != 0 || addr != waddr3 || err != nil {
+	if bytes.Compare(txid, wtx3) != 0 || addr != waddr1 || err != nil {
 		t.Error("3")
 		t.Skip()
 	}
@@ -122,8 +119,8 @@ func TestNewDocstoreWallet(t *testing.T) {
 		t.Skip()
 	}
 	err1 := utxos1.AddUTXO(wtx1, waddr1)
-	err2 := utxos1.AddUTXO(wtx2, waddr2)
-	err3 := utxos1.AddUTXO(wtx3, waddr3)
+	err2 := utxos1.AddUTXO(wtx2, waddr1)
+	err3 := utxos1.AddUTXO(wtx3, waddr1)
 	if err1 != nil || err2 != nil || err3 != nil {
 		t.Error("4")
 		t.Skip()
