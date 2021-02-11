@@ -22,6 +22,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/cors"
 	"github.com/go-chi/httprate"
 	_ "gocloud.dev/docstore/mongodocstore"
 )
@@ -131,6 +132,14 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Heartbeat("/healthz"))
 	r.Use(gwService.OAPIValidator())
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "PATCH", "HEAD", "OPTIONS"}, // browsers shoud not POST
+		AllowedHeaders:   []string{"*"},
+		ExposedHeaders:   []string{"*"},
+		AllowCredentials: false,
+		MaxAge:           300,
+	}))
 	api.HandlerFromMux(gwService, r)
 
 	// Serve.
