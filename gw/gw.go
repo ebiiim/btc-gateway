@@ -43,6 +43,7 @@ type Gateway interface {
 var _ Gateway = (*GatewayImpl)(nil)
 
 // Errors
+// TODO: Handle more error types: e.g. ErrInvalidFee
 // TODO: Provide more error types. e.g. ErrNoConfirmedUTXO
 var (
 	ErrCouldNotPutAnchor     = errors.New("ErrCouldNotPutAnchor")
