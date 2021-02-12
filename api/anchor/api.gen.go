@@ -73,14 +73,14 @@ type Error struct {
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// Get the anchor specified by BBc-1 domain ID and BBc-1 transaction ID.
-	// (GET /domains/{dom}/transactions/{tx})
-	GetDomainsDomTransactionsTx(w http.ResponseWriter, r *http.Request, dom string, tx string)
+	// (GET /anchors/domains/{dom}/transactions/{tx})
+	GetAnchorsDomainsDomTransactionsTx(w http.ResponseWriter, r *http.Request, dom string, tx string)
 	// Request to update the status of the anchor specified by BBc-1 domain ID and BBc-1 transaction ID.
-	// (PATCH /domains/{dom}/transactions/{tx})
-	PatchDomainsDomTransactionsTx(w http.ResponseWriter, r *http.Request, dom string, tx string)
+	// (PATCH /anchors/domains/{dom}/transactions/{tx})
+	PatchAnchorsDomainsDomTransactionsTx(w http.ResponseWriter, r *http.Request, dom string, tx string)
 	// Register an anchor with specified BBc-1 domain ID and BBc-1 transaction ID.
-	// (POST /domains/{dom}/transactions/{tx})
-	PostDomainsDomTransactionsTx(w http.ResponseWriter, r *http.Request, dom string, tx string)
+	// (POST /anchors/domains/{dom}/transactions/{tx})
+	PostAnchorsDomainsDomTransactionsTx(w http.ResponseWriter, r *http.Request, dom string, tx string)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -91,8 +91,8 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(http.HandlerFunc) http.HandlerFunc
 
-// GetDomainsDomTransactionsTx operation middleware
-func (siw *ServerInterfaceWrapper) GetDomainsDomTransactionsTx(w http.ResponseWriter, r *http.Request) {
+// GetAnchorsDomainsDomTransactionsTx operation middleware
+func (siw *ServerInterfaceWrapper) GetAnchorsDomainsDomTransactionsTx(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var err error
@@ -116,7 +116,7 @@ func (siw *ServerInterfaceWrapper) GetDomainsDomTransactionsTx(w http.ResponseWr
 	}
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetDomainsDomTransactionsTx(w, r, dom, tx)
+		siw.Handler.GetAnchorsDomainsDomTransactionsTx(w, r, dom, tx)
 	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -126,8 +126,8 @@ func (siw *ServerInterfaceWrapper) GetDomainsDomTransactionsTx(w http.ResponseWr
 	handler(w, r.WithContext(ctx))
 }
 
-// PatchDomainsDomTransactionsTx operation middleware
-func (siw *ServerInterfaceWrapper) PatchDomainsDomTransactionsTx(w http.ResponseWriter, r *http.Request) {
+// PatchAnchorsDomainsDomTransactionsTx operation middleware
+func (siw *ServerInterfaceWrapper) PatchAnchorsDomainsDomTransactionsTx(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var err error
@@ -151,7 +151,7 @@ func (siw *ServerInterfaceWrapper) PatchDomainsDomTransactionsTx(w http.Response
 	}
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.PatchDomainsDomTransactionsTx(w, r, dom, tx)
+		siw.Handler.PatchAnchorsDomainsDomTransactionsTx(w, r, dom, tx)
 	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -161,8 +161,8 @@ func (siw *ServerInterfaceWrapper) PatchDomainsDomTransactionsTx(w http.Response
 	handler(w, r.WithContext(ctx))
 }
 
-// PostDomainsDomTransactionsTx operation middleware
-func (siw *ServerInterfaceWrapper) PostDomainsDomTransactionsTx(w http.ResponseWriter, r *http.Request) {
+// PostAnchorsDomainsDomTransactionsTx operation middleware
+func (siw *ServerInterfaceWrapper) PostAnchorsDomainsDomTransactionsTx(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var err error
@@ -188,7 +188,7 @@ func (siw *ServerInterfaceWrapper) PostDomainsDomTransactionsTx(w http.ResponseW
 	ctx = context.WithValue(ctx, ApiKeyScopes, []string{""})
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.PostDomainsDomTransactionsTx(w, r, dom, tx)
+		siw.Handler.PostAnchorsDomainsDomTransactionsTx(w, r, dom, tx)
 	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -236,13 +236,13 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/domains/{dom}/transactions/{tx}", wrapper.GetDomainsDomTransactionsTx)
+		r.Get(options.BaseURL+"/anchors/domains/{dom}/transactions/{tx}", wrapper.GetAnchorsDomainsDomTransactionsTx)
 	})
 	r.Group(func(r chi.Router) {
-		r.Patch(options.BaseURL+"/domains/{dom}/transactions/{tx}", wrapper.PatchDomainsDomTransactionsTx)
+		r.Patch(options.BaseURL+"/anchors/domains/{dom}/transactions/{tx}", wrapper.PatchAnchorsDomainsDomTransactionsTx)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/domains/{dom}/transactions/{tx}", wrapper.PostDomainsDomTransactionsTx)
+		r.Post(options.BaseURL+"/anchors/domains/{dom}/transactions/{tx}", wrapper.PostAnchorsDomainsDomTransactionsTx)
 	})
 
 	return r
@@ -251,29 +251,29 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
-	"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",
+	"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",
 }
 
 // GetSwagger returns the Swagger specification corresponding to the generated code

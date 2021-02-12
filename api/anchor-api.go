@@ -44,8 +44,9 @@ var (
 type GatewayService struct {
 	gw.Gateway
 	auth.Authenticator
-	anchor.ServerInterface
 }
+
+var _ anchor.ServerInterface = (*GatewayService)(nil)
 
 func NewGatewayService(gw gw.Gateway, authenticator auth.Authenticator) *GatewayService {
 	g := &GatewayService{
@@ -67,7 +68,7 @@ func sendGatewayServiceError(w http.ResponseWriter, code int, err error, desc st
 	WriteJSON(w, code, gsErr)
 }
 
-func (g *GatewayService) GetDomainsDomTransactionsTx(w http.ResponseWriter, r *http.Request, dom string, tx string) {
+func (g *GatewayService) GetAnchorsDomainsDomTransactionsTx(w http.ResponseWriter, r *http.Request, dom string, tx string) {
 	bdom, err1 := hex.DecodeString(dom)
 	btx, err2 := hex.DecodeString(tx)
 	if err1 != nil || err2 != nil {
@@ -86,7 +87,7 @@ func (g *GatewayService) GetDomainsDomTransactionsTx(w http.ResponseWriter, r *h
 	WriteJSON(w, http.StatusOK, convertAnchorRecord(ar))
 }
 
-func (g *GatewayService) PatchDomainsDomTransactionsTx(w http.ResponseWriter, r *http.Request, dom string, tx string) {
+func (g *GatewayService) PatchAnchorsDomainsDomTransactionsTx(w http.ResponseWriter, r *http.Request, dom string, tx string) {
 	bdom, err1 := hex.DecodeString(dom)
 	btx, err2 := hex.DecodeString(tx)
 	if err1 != nil || err2 != nil {
@@ -106,7 +107,7 @@ func (g *GatewayService) PatchDomainsDomTransactionsTx(w http.ResponseWriter, r 
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (g *GatewayService) PostDomainsDomTransactionsTx(w http.ResponseWriter, r *http.Request, dom string, tx string) {
+func (g *GatewayService) PostAnchorsDomainsDomTransactionsTx(w http.ResponseWriter, r *http.Request, dom string, tx string) {
 	bdom, err1 := hex.DecodeString(dom)
 	btx, err2 := hex.DecodeString(tx)
 	if err1 != nil || err2 != nil {

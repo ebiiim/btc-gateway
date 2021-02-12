@@ -16,7 +16,7 @@ tags:
   - name: Anchor
     description: Anchor APIs Version 1
 paths:
-  /domains/{dom}/transactions/{tx}:
+  /anchors/domains/{dom}/transactions/{tx}:
     get:
       tags:
         - "Anchor"
