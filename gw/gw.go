@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
 	"time"
 
 	"github.com/ebiiim/btcgw/btc"
@@ -60,6 +61,8 @@ type GatewayImpl struct {
 	Store  store.Store
 
 	xBTCImpl *btc.BitcoinCLI
+
+	mu sync.Mutex
 }
 
 // NewGatewayImpl initializes a GatewayImpl.
@@ -91,6 +94,10 @@ var timeNow = time.Now
 
 func (g *GatewayImpl) RegisterTransaction(ctx context.Context, domID, txID []byte) (btcTXID []byte, err error) {
 	a := model.NewAnchor(g.BTCNet, timeNow(), domID, txID)
+
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
 	// Set UTXO if Wallet is set.
 	if g.Wallet != nil {
 		tx, addr, err := g.Wallet.PeekNextUTXO()
@@ -116,7 +123,9 @@ func (g *GatewayImpl) RegisterTransaction(ctx context.Context, domID, txID []byt
 }
 
 func (g *GatewayImpl) StoreRecord(ctx context.Context, btcTXID []byte) error {
+	g.mu.Lock()
 	ar, err := g.BTC.GetAnchor(ctx, btcTXID)
+	g.mu.Unlock()
 	if err != nil {
 		return fmt.Errorf("%w (%v)", ErrCouldNotStoreRecord, err)
 	}
@@ -139,7 +148,9 @@ func (g *GatewayImpl) RefreshRecord(ctx context.Context, domID, txID []byte, pBB
 	if err != nil {
 		return fmt.Errorf("%w (%v)", ErrCouldNotRefreshRecord, err)
 	}
+	g.mu.Lock()
 	newAR, err := g.BTC.GetAnchor(ctx, oldAR.BTCTransactionID)
+	g.mu.Unlock()
 	if err != nil {
 		return fmt.Errorf("%w (%v)", ErrCouldNotRefreshRecord, err)
 	}
@@ -160,6 +171,7 @@ func (g *GatewayImpl) RefreshRecord(ctx context.Context, domID, txID []byte, pBB
 }
 
 // Close closes g.Store.
+// No need to close *btc.BitcoinCLI
 func (g *GatewayImpl) Close() error {
 	err := g.Store.Close()
 	if err != nil {
