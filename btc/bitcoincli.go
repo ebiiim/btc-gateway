@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"github.com/ebiiim/btcgw/model"
+
+	"github.com/ebiiim/cmdproxy"
 )
 
 type cliCmd string
@@ -89,6 +91,23 @@ type BitcoinCLI struct {
 	// Set by XSetUTXO and used by PutAnchor only.
 	xBTCAddr       string
 	xTransactionID []byte
+
+	cmdproxyEnabled bool
+	cmdproxyClient  *cmdproxy.Client
+}
+
+// MustNewBitcoinCLIWithCmdProxy initializes a BitcoinCLI with remote bitcoin-cli via cmdproxy.
+// Runs date command on initialize and panics if failed.
+// Also see: NewBitcoinCLI
+func MustNewBitcoinCLIWithCmdProxy(binPath string, btcNet model.BTCNet, rpcAddr, rpcPort, rpcUser, rpcPassword string, cmdproxyURL, cmdproxySecret string) *BitcoinCLI {
+	b := NewBitcoinCLI(binPath, btcNet, rpcAddr, rpcPort, rpcUser, rpcPassword)
+	b.cmdproxyEnabled = true
+	b.cmdproxyClient = cmdproxy.NewClient(cmdproxyURL, cmdproxySecret)
+	_, err := b.cmdproxyClient.Run([]string{"date"}, 5*time.Second)
+	if err != nil {
+		panic(err)
+	}
+	return b
 }
 
 // NewBitcoinCLI initializes a BitcoinCLI.
@@ -166,13 +185,41 @@ func (b *BitcoinCLI) run(ctx context.Context, args []string) (*bytes.Buffer, *by
 	if dryRun {
 		return nil, nil, fmt.Errorf("%w%s %s", ErrDryRun, b.binPath, strings.Join(args, " "))
 	}
-	cmd := exec.CommandContext(ctx, b.binPath, args...)
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		switch ec := cmd.ProcessState.ExitCode(); ec {
+	var err error // error from cmd.Run
+	var ec int    // exit code from the command
+
+	if b.cmdproxyEnabled {
+		// use cmdproxy
+		var r *cmdproxy.Result
+		cmds := []string{b.binPath}
+		cmds = append(cmds, args...)
+		// TODO: set deadline from ctx
+		r, err = b.cmdproxyClient.Run(cmds, 10*time.Second)
+		if err != nil {
+			// r == nil
+			ec = -1
+		} else {
+			// r != nil
+			ec = r.ExitCode
+			if r.Error != "" {
+				err = errors.New(r.Error)
+			}
+			io.Copy(&stdout, bytes.NewBuffer(r.Stdout))
+			io.Copy(&stderr, bytes.NewBuffer(r.Stderr))
+		}
+	} else {
+		// no use cmdproxy
+		cmd := exec.CommandContext(ctx, b.binPath, args...)
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+		err = cmd.Run()
+		ec = cmd.ProcessState.ExitCode()
+	}
+
+	if err != nil {
+		switch ec {
 		case -1:
 			return nil, nil, fmt.Errorf("%w (%v)", ErrFailedToExec, err)
 		case exitOK:

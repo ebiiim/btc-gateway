@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -34,6 +35,16 @@ var (
 	rpcPort = util.GetEnvOr("BITCOIND_PORT", "")
 	rpcUser = util.GetEnvOr("BITCOIND_RPC_USER", "")
 	rpcPW   = util.GetEnvOr("BITCOIND_RPC_PASSWORD", "")
+
+	cmdprxEnabled = func() bool {
+		s := os.Getenv("CMDPROXY_ENABLED")
+		if strings.ToLower(s) != "true" {
+			return false
+		}
+		return true
+	}()
+	cmdprxURL    = util.GetEnvOr("CMDPROXY_URL", "")
+	cmdprxSecret = util.GetEnvOr("CMDPROXY_SECRET", "")
 )
 
 const (
@@ -102,7 +113,12 @@ func main() {
 	useMongoDBAtlas()
 	// Setup Gateway.
 	var err error
-	btcCLI := btc.NewBitcoinCLI(cliPath, btcNet, rpcAddr, rpcPort, rpcUser, rpcPW)
+	var btcCLI *btc.BitcoinCLI
+	if cmdprxEnabled {
+		btcCLI = btc.MustNewBitcoinCLIWithCmdProxy(cliPath, btcNet, rpcAddr, rpcPort, rpcUser, rpcPW, cmdprxURL, cmdprxSecret)
+	} else {
+		btcCLI = btc.NewBitcoinCLI(cliPath, btcNet, rpcAddr, rpcPort, rpcUser, rpcPW)
+	}
 	docStore := store.NewDocstore(mongoStore())
 	if err = docStore.Open(); err != nil {
 		log.Println(err)
