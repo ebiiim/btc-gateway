@@ -3,13 +3,11 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
@@ -36,15 +34,13 @@ var (
 	rpcUser = util.GetEnvOr("BITCOIND_RPC_USER", "")
 	rpcPW   = util.GetEnvOr("BITCOIND_RPC_PASSWORD", "")
 
-	cmdprxEnabled = func() bool {
-		s := os.Getenv("CMDPROXY_ENABLED")
-		if strings.ToLower(s) != "true" {
-			return false
-		}
-		return true
-	}()
-	cmdprxURL    = util.GetEnvOr("CMDPROXY_URL", "")
-	cmdprxSecret = util.GetEnvOr("CMDPROXY_SECRET", "")
+	cmdprxEnabled = util.GetEnvBoolOr("CMDPROXY_ENABLED", false)
+	cmdprxURL     = util.GetEnvOr("CMDPROXY_URL", "")
+	cmdprxSecret  = util.GetEnvOr("CMDPROXY_SECRET", "")
+
+	dev        = util.GetEnvBoolOr("DEV", false)
+	port       = util.GetEnvIntOr("PORT", 8080)
+	walletAddr = util.GetEnvOr("BITCOIN_WALLET_ADDR", "")
 )
 
 const (
@@ -88,16 +84,18 @@ func mongoWallet() string {
 }
 
 func main() {
-	var port = flag.Int("port", 8080, "HTTP port")
-	var dev = flag.Bool("dev", false, "Use AnchorVersion 255 and prettify HTTP response body")
-	var walletAddr = flag.String("wallet", "", "Bitcoin address for sending transactions")
-	flag.Parse()
+	// flag.IntVar(&port, "port", 8080, "HTTP port")
+	// flag.BoolVar(&dev, "dev", false, "Use AnchorVersion 255 and prettify HTTP response body")
+	// flag.StringVar(&walletAddr, "wallet", "", "Bitcoin address for sending transactions")
+	// flag.Parse()
 
-	if *walletAddr == "" {
+	// use environment variables
+
+	if walletAddr == "" {
 		log.Println("please set wallet")
 		return
 	}
-	if *dev {
+	if dev {
 		fmt.Println("Development Environment")
 		// Set AnchorVersion to test.
 		model.XAnchorVersion(255)
@@ -124,7 +122,7 @@ func main() {
 		log.Println(err)
 		return
 	}
-	wallet := btc.MustNewDocstoreWallet(mongoWallet(), *walletAddr)
+	wallet := btc.MustNewDocstoreWallet(mongoWallet(), walletAddr)
 	gwImpl := gw.NewGatewayImpl(model.BTCTestnet3, btcCLI, wallet, docStore)
 
 	// Setup Authenticator.
@@ -159,7 +157,7 @@ func main() {
 	api.HandlerFromMux(gwService, r)
 
 	// Serve.
-	addr := fmt.Sprintf("0.0.0.0:%d", *port)
+	addr := fmt.Sprintf("0.0.0.0:%d", port)
 	fmt.Printf("Listening on: http://%s\n", addr)
 	s := &http.Server{
 		Handler: r,
