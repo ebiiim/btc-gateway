@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
 
 // MustDecodeHexString returns a decoded string or raises panic.
@@ -64,4 +65,32 @@ func GetEnvOr(env string, defaultValue string) string {
 		return defaultValue
 	}
 	return v
+}
+
+// GetEnvIntOr returns an environment variable in int specified by env,
+// or returns defaultValue if the environment variable is not defined or cannot be parsed.
+func GetEnvIntOr(env string, defaultValue int) int {
+	v := os.Getenv(env)
+	if v == "" {
+		return defaultValue
+	}
+	i, err := strconv.Atoi(v)
+	if err != nil {
+		return defaultValue
+	}
+	return i
+}
+
+// GetEnvBoolOr returns an environment variable in bool specified by env,
+// or returns defaultValue if the environment variable is not defined or cannot be parsed.
+func GetEnvBoolOr(env string, defaultValue bool) bool {
+	v := strings.ToLower(os.Getenv(env))
+	switch v {
+	case "true":
+		return true
+	case "false":
+		return false
+	default:
+		return defaultValue
+	}
 }

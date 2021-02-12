@@ -84,3 +84,57 @@ func TestGetEnvOr(t *testing.T) {
 		t.Errorf("got %s but want %s", s, def)
 	}
 }
+
+func TestGetEnvBoolOr(t *testing.T) {
+	key := "___TESTGETENVBOOLOR___"
+	if err := os.Setenv(key, ""); err != nil {
+		t.Error(err)
+	}
+	if v := util.GetEnvBoolOr(key, true); v != true {
+		t.Errorf("got %v but want %v", v, true)
+	}
+	if v := util.GetEnvBoolOr(key, false); v != false {
+		t.Errorf("got %v but want %v", v, false)
+	}
+	if err := os.Setenv(key, "trUe"); err != nil {
+		t.Error(err)
+	}
+	if v := util.GetEnvBoolOr(key, true); v != true {
+		t.Errorf("got %v but want %v", v, true)
+	}
+	if v := util.GetEnvBoolOr(key, false); v != true {
+		t.Errorf("got %v but want %v", v, true)
+	}
+	if err := os.Setenv(key, "fAlse"); err != nil {
+		t.Error(err)
+	}
+	if v := util.GetEnvBoolOr(key, true); v != false {
+		t.Errorf("got %v but want %v", v, false)
+	}
+	if v := util.GetEnvBoolOr(key, false); v != false {
+		t.Errorf("got %v but want %v", v, false)
+	}
+}
+
+func TestGetEnvIntOr(t *testing.T) {
+	key := "___TESTGETENVINTOR___"
+	if err := os.Setenv(key, ""); err != nil {
+		t.Error(err)
+	}
+	if v := util.GetEnvIntOr(key, 500); v != 500 {
+		t.Errorf("got %v but want %v", v, 500)
+	}
+	if err := os.Setenv(key, "😇"); err != nil {
+		t.Error(err)
+	}
+	if v := util.GetEnvIntOr(key, 500); v != 500 {
+		t.Errorf("got %v but want %v", v, 500)
+	}
+	if err := os.Setenv(key, "200"); err != nil {
+		t.Error(err)
+	}
+	if v := util.GetEnvIntOr(key, 500); v != 200 {
+		t.Errorf("got %v but want %v", v, 200)
+	}
+
+}
