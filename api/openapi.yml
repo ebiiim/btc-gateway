@@ -23,21 +23,6 @@ paths:
       tags:
         - "Anchor"
       summary: Gets the anchor specified by BBc-1 domain ID and BBc-1 transaction ID.
-      parameters:
-        - name: dom
-          in: path
-          description: BBc-1 domain ID in hexadecimal string
-          required: true
-          schema:
-            type: string
-            example: 456789abc0ef0123456089abcdef0023456789a0cdef0123406789abcde00123
-        - name: tx
-          in: path
-          description: BBc-1 transaction ID in hexadecimal string
-          required: true
-          schema:
-            type: string
-            example: 56789abcd0f0123456709abcdef0103456789ab0def0123450789abcdef01234
       responses:
         "200":
           description: Gets the anchor successfully and returns the AnchorRecord.
@@ -57,21 +42,6 @@ paths:
       summary: Registers an anchor with specified BBc-1 domain ID and BBc-1 transaction ID.
       security:
         - ApiKey: []
-      parameters:
-        - name: dom
-          in: path
-          description: BBc-1 domain ID in hexadecimal string
-          required: true
-          schema:
-            type: string
-            example: 456789abc0ef0123456089abcdef0023456789a0cdef0123406789abcde00123
-        - name: tx
-          in: path
-          description: BBc-1 transaction ID in hexadecimal string
-          required: true
-          schema:
-            type: string
-            example: 56789abcd0f0123456709abcdef0103456789ab0def0123450789abcdef01234
       responses:
         "200":
           description: Registration completes successfully and returns the AnchorRecord.
@@ -89,21 +59,6 @@ paths:
       tags:
         - "Anchor"
       summary: Requests to update the status of the anchor specified by BBc-1 domain ID and BBc-1 transaction ID.
-      parameters:
-        - name: dom
-          in: path
-          description: BBc-1 domain ID in hexadecimal string
-          required: true
-          schema:
-            type: string
-            example: 456789abc0ef0123456089abcdef0023456789a0cdef0123406789abcde00123
-        - name: tx
-          in: path
-          description: BBc-1 transaction ID in hexadecimal string
-          required: true
-          schema:
-            type: string
-            example: 56789abcd0f0123456709abcdef0103456789ab0def0123450789abcdef01234
       responses:
         "204":
           description: Successful.
@@ -113,6 +68,21 @@ paths:
           $ref: "#/components/responses/ErrAnchorNotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
+    parameters:
+    - name: dom
+      in: path
+      description: BBc-1 domain ID in hexadecimal string
+      required: true
+      schema:
+        type: string
+        example: 456789abc0ef0123456089abcdef0023456789a0cdef0123406789abcde00123
+    - name: tx
+      in: path
+      description: BBc-1 transaction ID in hexadecimal string
+      required: true
+      schema:
+        type: string
+        example: 56789abcd0f0123456709abcdef0103456789ab0def0123450789abcdef01234
   /apikeys/create:
     post:
       tags:
