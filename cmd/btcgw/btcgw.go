@@ -145,15 +145,15 @@ func main() {
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Heartbeat("/healthz"))
-	r.Use(gwService.OAPIValidator())
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"},
-		AllowedMethods:   []string{"GET", "PATCH", "HEAD", "OPTIONS"}, // browsers shoud not POST
+		AllowedMethods:   []string{"GET", "PATCH"}, // browsers do not POST
 		AllowedHeaders:   []string{"*"},
 		ExposedHeaders:   []string{"*"},
 		AllowCredentials: false,
 		MaxAge:           300,
 	}))
+	r.Use(gwService.OAPIValidator())
 	api.AnchorHandlerFromMux(gwService, r)
 
 	// Serve.

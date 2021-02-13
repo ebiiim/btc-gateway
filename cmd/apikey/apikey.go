@@ -83,15 +83,15 @@ func main() {
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Heartbeat("/healthz"))
-	r.Use(akService.OAPIValidator())
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"},
-		AllowedMethods:   []string{"POST", "DELETE", "HEAD", "OPTIONS"},
+		AllowedMethods:   []string{"POST"},
 		AllowedHeaders:   []string{"*"},
 		ExposedHeaders:   []string{"*"},
 		AllowCredentials: false,
 		MaxAge:           300,
 	}))
+	r.Use(akService.OAPIValidator())
 	api.APIKeyHandlerFromMux(akService, r)
 
 	// Serve.
