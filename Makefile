@@ -1,20 +1,23 @@
 include .env
 export
 
-.PHONY: all gen build build-btcgw build-apikeycli test test-local api-generate-swagger-ui deploy-download-bitcoincore
+.PHONY: all gen build build-btcgw build-apikey-cli build-apikey test test-local api-generate-swagger-ui deploy-download-bitcoincore
 
 all: test build api-generate-swagger-ui
 
 gen:
 	go generate ./...
 
-build: build-btcgw build-apikeycli
+build: build-btcgw build-apikey-cli build-apikey
 
 build-btcgw: gen
 	go build "-ldflags=-s -w" -trimpath -o btcgw cmd/btcgw/btcgw.go
 
-build-apikeycli: gen
+build-apikey-cli: gen
 	go build "-ldflags=-s -w" -trimpath -o apikey-cli cmd/apikey-cli/apikey-cli.go
+
+build-apikey: gen
+	go build "-ldflags=-s -w" -trimpath -o apikey cmd/apikey/apikey.go
 
 test: gen
 	go test -race -cover ./...

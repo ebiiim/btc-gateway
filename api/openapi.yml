@@ -14,24 +14,26 @@ servers:
   - url: ""
 tags:
   - name: Anchor
-    description: Anchor APIs Version 1
+    description: ""
+  - name: API Key
+    description: ""
 paths:
   /anchors/domains/{dom}/transactions/{tx}:
     get:
       tags:
         - "Anchor"
-      summary: Get the anchor specified by BBc-1 domain ID and BBc-1 transaction ID.
+      summary: Gets the anchor specified by BBc-1 domain ID and BBc-1 transaction ID.
       parameters:
         - name: dom
           in: path
-          description: Set the BBc-1 domain ID in hexadecimal string.
+          description: BBc-1 domain ID in hexadecimal string
           required: true
           schema:
             type: string
             example: 456789abc0ef0123456089abcdef0023456789a0cdef0123406789abcde00123
         - name: tx
           in: path
-          description: Set the BBc-1 transaction ID in hexadecimal string.
+          description: BBc-1 transaction ID in hexadecimal string
           required: true
           schema:
             type: string
@@ -44,43 +46,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/AnchorRecord"
         "400":
-          description: Invalid request received, returns an Error.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+          $ref: "#/components/responses/BadRequest"
         "403":
-          description: Anchor not found, returns an Error.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+          $ref: "#/components/responses/ErrAnchorNotFound"
         "500":
-          description: Internal error occurred, returns an Error.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-              example:
-                error: "btcgw::unexpected_error"
-                error_description: "An unexpected error has occurred, please contact us."
+          $ref: "#/components/responses/InternalServerError"
     post:
       tags:
         - "Anchor"
-      summary: Register an anchor with specified BBc-1 domain ID and BBc-1 transaction ID.
+      summary: Registers an anchor with specified BBc-1 domain ID and BBc-1 transaction ID.
       security:
         - ApiKey: []
       parameters:
         - name: dom
           in: path
-          description: Set the BBc-1 domain ID in hexadecimal string.
+          description: BBc-1 domain ID in hexadecimal string
           required: true
           schema:
             type: string
             example: 456789abc0ef0123456089abcdef0023456789a0cdef0123406789abcde00123
         - name: tx
           in: path
-          description: Set the BBc-1 transaction ID in hexadecimal string.
+          description: BBc-1 transaction ID in hexadecimal string
           required: true
           schema:
             type: string
@@ -93,37 +80,26 @@ paths:
               schema:
                 $ref: "#/components/schemas/AnchorRecord"
         "400":
-          description: Invalid request received, returns an Error.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+          $ref: "#/components/responses/BadRequest"
         "401":
           description: Unauthorized.
         "500":
-          description: Internal error occurred, returns an Error.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-              example:
-                error: "btcgw::unexpected_error"
-                error_description: "An unexpected error has occurred, please contact us."
+          $ref: "#/components/responses/InternalServerError"
     patch:
       tags:
         - "Anchor"
-      summary: Request to update the status of the anchor specified by BBc-1 domain ID and BBc-1 transaction ID.
+      summary: Requests to update the status of the anchor specified by BBc-1 domain ID and BBc-1 transaction ID.
       parameters:
         - name: dom
           in: path
-          description: Set the BBc-1 domain ID in hexadecimal string.
+          description: BBc-1 domain ID in hexadecimal string
           required: true
           schema:
             type: string
             example: 456789abc0ef0123456089abcdef0023456789a0cdef0123406789abcde00123
         - name: tx
           in: path
-          description: Set the BBc-1 transaction ID in hexadecimal string.
+          description: BBc-1 transaction ID in hexadecimal string
           required: true
           schema:
             type: string
@@ -132,28 +108,51 @@ paths:
         "204":
           description: Successful.
         "400":
-          description: Invalid request received, returns an Error.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
+          $ref: "#/components/responses/BadRequest"
         "403":
-          description: Anchor not found, returns an Error.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+          $ref: "#/components/responses/ErrAnchorNotFound"
         "500":
-          description: Internal error occurred, returns an Error.
+          $ref: "#/components/responses/InternalServerError"
+  /apikeys/create:
+    post:
+      tags:
+        - API Key
+      summary: Creates an API Key associated with the BBc-1 domain specified by ID.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BBc1Dom"
+      responses:
+        "200":
+          description: Creation completes successfully and returns the APIKey.
           content:
-            application/json:
+            applycation/json:
               schema:
-                $ref: "#/components/schemas/Error"
-              example:
-                error: btcgw::unexpected_error
-                error_description: An unexpected error has occurred, please contact us.
+                $ref: "#/components/schemas/APIKey"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /apikeys/delete:
+    post:
+      tags:
+        - API Key
+      summary: Deletes the specified API Key.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/APIKey"
+      responses:
+        "204":
+          description: Successful or not found.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 components:
   securitySchemes:
     ApiKey:
@@ -161,12 +160,33 @@ components:
       in: header
       name: X-API-KEY
   responses:
-    UnauthorizedError:
+    BadRequest:
+      description: Invalid request received, returns an Error.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorized:
       description: API key is missing or invalid.
       headers:
         WWW_Authenticate:
           schema:
             type: string
+    InternalServerError:
+      description: Internal error occurred, returns an Error.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error: "btcgw::unexpected_error"
+            error_description: "An unexpected error has occurred, please contact us."
+    ErrAnchorNotFound:
+      description: Anchor not found, returns an Error.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
   schemas:
     Anchor:
       type: object
@@ -227,6 +247,24 @@ components:
           type: string
           example: hello world
           description: Arbitrary string that is not embedded in the Bitcoin transaction.
+    BBc1Dom:
+      type: object
+      required:
+        - bbc1dom
+      properties:
+        bbc1dom:
+          type: string
+          example: 456789abc0ef0123456089abcdef0023456789a0cdef0123406789abcde00123
+          description: BBc-1 domain ID in hexadecimal string.
+    APIKey:
+      type: object
+      required:
+        - key
+      properties:
+        key:
+          type: string
+          example: "8899aabbccddeeff0011223344556677"
+          description: API key (must be kept secret).
     Error:
       type: object
       required:

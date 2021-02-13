@@ -154,7 +154,7 @@ func main() {
 		AllowCredentials: false,
 		MaxAge:           300,
 	}))
-	api.HandlerFromMux(gwService, r)
+	api.AnchorHandlerFromMux(gwService, r)
 
 	// Serve.
 	addr := fmt.Sprintf("0.0.0.0:%d", port)

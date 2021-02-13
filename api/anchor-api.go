@@ -12,33 +12,17 @@ import (
 	"time"
 
 	"github.com/ebiiim/btcgw/api/anchor"
+	"github.com/ebiiim/btcgw/auth"
 	"github.com/ebiiim/btcgw/gw"
 	"github.com/ebiiim/btcgw/model"
 
 	oapimiddleware "github.com/deepmap/oapi-codegen/pkg/chi-middleware"
-	"github.com/ebiiim/btcgw/auth"
 	"github.com/getkin/kin-openapi/openapi3filter"
 )
 
 // export
 
-var HandlerFromMux = anchor.HandlerFromMux
-
-var (
-	ErrInvalidID     = errors.New("btcgw::invalid_id")
-	ErrInvalidIDDesc = "ID should be a 32 bytes binary in hexadecimal string."
-
-	ErrTxNotFound     = errors.New("btcgw::tx_not_found")
-	ErrTxNotFoundDesc = "Transaction not found."
-
-	ErrRegisterFailed     = errors.New("btcgw::register_failed")
-	ErrRegisterFailedDesc = "Could not register. There may be a system error."
-
-	ErrTxAlreadyExists     = errors.New("btcgw::tx_already_exists")
-	ErrTxAlreadyExistsDesc = "Transaction already exists."
-
-	ErrCouldNotClose = errors.New("ErrCouldNotClose")
-)
+var AnchorHandlerFromMux = anchor.HandlerFromMux
 
 // TODO: cache
 type GatewayService struct {
@@ -147,7 +131,8 @@ func (g *GatewayService) PostAnchorsDomainsDomTransactionsTx(w http.ResponseWrit
 	WriteJSON(w, http.StatusOK, convertAnchorRecord(ar))
 }
 
-func (g *GatewayService) OAPIValidator() func(next http.Handler) http.Handler { // Setup Swagger.
+// OAPIValidator sets up OpenAPI validator and must be set as a middleware.
+func (g *GatewayService) OAPIValidator() func(next http.Handler) http.Handler {
 	swagger, err := anchor.GetSwagger()
 	if err != nil {
 		panic(fmt.Sprintf("could not load swagger spec: %s", err))
