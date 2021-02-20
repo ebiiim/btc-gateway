@@ -45,17 +45,17 @@ func sendAPIKeyServiceError(w http.ResponseWriter, code int, err error, desc str
 }
 
 func (a *APIKeyService) PostApikeysCreate(w http.ResponseWriter, r *http.Request) {
-	var rdom apikey.BBc1Dom
+	var rdom apikey.BBc1Domain
 	if err := json.NewDecoder(r.Body).Decode(&rdom); err != nil {
 		sendAPIKeyServiceError(w, http.StatusBadRequest, ErrInvalidRequestBody, ErrInvalidRequestBodyDesc)
 		return
 	}
-	if _, err := hex.DecodeString(rdom.Bbc1dom); err != nil {
-		sendAPIKeyServiceError(w, http.StatusBadRequest, ErrInvalidID, ErrInvalidIDDesc)
+	if _, err := hex.DecodeString(rdom.Domain); err != nil {
+		sendAPIKeyServiceError(w, http.StatusBadRequest, ErrInvalidParam, ErrInvalidParamDesc)
 		return
 	}
 	ctx := r.Context()
-	k, err := a.d.Generate(ctx, rdom.Bbc1dom, false, fmt.Sprintf("Created by API at: %s", time.Now().Format(time.RFC3339)))
+	k, err := a.d.Generate(ctx, rdom.Domain, false, fmt.Sprintf("Created by API at: %s", time.Now().Format(time.RFC3339)))
 	if err != nil {
 		sendAPIKeyServiceError(w, http.StatusInternalServerError, ErrAPIKeyCreationFailed, ErrAPIKeyCreationFailedDesc)
 		return

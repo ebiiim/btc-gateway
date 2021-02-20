@@ -18,11 +18,11 @@ tags:
   - name: API Key
     description: ""
 paths:
-  /anchors/domains/{dom}/transactions/{tx}:
+  /anchors/domains/{domain}/digests/{digest}:
     get:
       tags:
         - "Anchor"
-      summary: Gets the anchor specified by BBc-1 domain ID and BBc-1 transaction ID.
+      summary: Gets the anchor specified by BBc-1 domain ID and BBc-1 digest.
       responses:
         "200":
           description: Gets the anchor successfully and returns the AnchorRecord.
@@ -39,7 +39,7 @@ paths:
     post:
       tags:
         - "Anchor"
-      summary: Registers an anchor with specified BBc-1 domain ID and BBc-1 transaction ID.
+      summary: Registers an anchor with specified BBc-1 domain ID and BBc-1 digest.
       security:
         - ApiKey: []
       responses:
@@ -58,7 +58,7 @@ paths:
     patch:
       tags:
         - "Anchor"
-      summary: Requests to update the status of the anchor specified by BBc-1 domain ID and BBc-1 transaction ID.
+      summary: Requests to update the status of the anchor specified by BBc-1 domain ID and BBc-1 digest.
       responses:
         "204":
           description: Successful.
@@ -69,20 +69,20 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
     parameters:
-    - name: dom
-      in: path
-      description: BBc-1 domain ID in hexadecimal string
-      required: true
-      schema:
-        type: string
-        example: 456789abc0ef0123456089abcdef0023456789a0cdef0123406789abcde00123
-    - name: tx
-      in: path
-      description: BBc-1 transaction ID in hexadecimal string
-      required: true
-      schema:
-        type: string
-        example: 56789abcd0f0123456709abcdef0103456789ab0def0123450789abcdef01234
+      - name: domain
+        in: path
+        description: BBc-1 domain ID in hexadecimal string
+        required: true
+        schema:
+          type: string
+          example: 456789abc0ef0123456089abcdef0023456789a0cdef0123406789abcde00123
+      - name: digest
+        in: path
+        description: BBc-1 digest in hexadecimal string
+        required: true
+        schema:
+          type: string
+          example: 56789abcd0f0123456709abcdef0103456789ab0def0123450789abcdef01234
   /apikeys/create:
     post:
       tags:
@@ -93,7 +93,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/BBc1Dom"
+              $ref: "#/components/schemas/BBc1Domain"
       responses:
         "200":
           description: Creation completes successfully and returns the APIKey.
@@ -164,8 +164,8 @@ components:
         - version
         - chain
         - time
-        - bbc1dom
-        - bbc1tx
+        - domain
+        - digest
       properties:
         version:
           type: integer
@@ -179,14 +179,14 @@ components:
           type: integer
           example: 1612449628
           description: Timestamp embedded in the Anchor.
-        bbc1dom:
+        domain:
           type: string
           example: 456789abc0ef0123456089abcdef0023456789a0cdef0123406789abcde00123
           description: BBc-1 domain ID in hexadecimal string.
-        bbc1tx:
+        digest:
           type: string
           example: 56789abcd0f0123456709abcdef0103456789ab0def0123450789abcdef01234
-          description: BBc-1 transaction ID in hexadecimal string.
+          description: BBc-1 digest in hexadecimal string.
     AnchorRecord:
       type: object
       required:
@@ -200,7 +200,7 @@ components:
         btctx:
           type: string
           example: 6928e1c6478d1f55ed1a5d86e1ab24669a14f777b879bbb25c746543810bf916
-          description: Bitcoin transaction ID transaction ID in hexadecimal string.
+          description: Bitcoin transaction ID in hexadecimal string.
         time:
           type: integer
           example: 1612449916
@@ -217,12 +217,12 @@ components:
           type: string
           example: hello world
           description: Arbitrary string that is not embedded in the Bitcoin transaction.
-    BBc1Dom:
+    BBc1Domain:
       type: object
       required:
-        - bbc1dom
+        - domain
       properties:
-        bbc1dom:
+        domain:
           type: string
           example: 456789abc0ef0123456089abcdef0023456789a0cdef0123406789abcde00123
           description: BBc-1 domain ID in hexadecimal string.
