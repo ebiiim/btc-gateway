@@ -52,59 +52,59 @@ func sendGatewayServiceError(w http.ResponseWriter, code int, err error, desc st
 	WriteJSON(w, code, gsErr)
 }
 
-func (g *GatewayService) GetAnchorsDomainsDomTransactionsTx(w http.ResponseWriter, r *http.Request, dom string, tx string) {
+func (g *GatewayService) GetAnchorsDomainsDomainDigestsDigest(w http.ResponseWriter, r *http.Request, dom string, dig string) {
 	bdom, err1 := hex.DecodeString(dom)
-	btx, err2 := hex.DecodeString(tx)
+	bdig, err2 := hex.DecodeString(dig)
 	if err1 != nil || err2 != nil {
-		sendGatewayServiceError(w, http.StatusBadRequest, ErrInvalidID, ErrInvalidIDDesc)
+		sendGatewayServiceError(w, http.StatusBadRequest, ErrInvalidParam, ErrInvalidParamDesc)
 		return
 	}
 	ctx := r.Context()
-	ar, err := g.GetRecord(ctx, bdom, btx)
+	ar, err := g.GetRecord(ctx, bdom, bdig)
 	if err != nil {
 		log.Println(err)
 	}
 	if errors.Is(err, gw.ErrCouldNotGetRecord) {
-		sendGatewayServiceError(w, http.StatusNotFound, ErrTxNotFound, ErrTxNotFoundDesc)
+		sendGatewayServiceError(w, http.StatusNotFound, ErrDigestNotFound, ErrDigestNotFoundDesc)
 		return
 	}
 	WriteJSON(w, http.StatusOK, convertAnchorRecord(ar))
 }
 
-func (g *GatewayService) PatchAnchorsDomainsDomTransactionsTx(w http.ResponseWriter, r *http.Request, dom string, tx string) {
+func (g *GatewayService) PatchAnchorsDomainsDomainDigestsDigest(w http.ResponseWriter, r *http.Request, dom string, dig string) {
 	bdom, err1 := hex.DecodeString(dom)
-	btx, err2 := hex.DecodeString(tx)
+	bdig, err2 := hex.DecodeString(dig)
 	if err1 != nil || err2 != nil {
-		sendGatewayServiceError(w, http.StatusBadRequest, ErrInvalidID, ErrInvalidIDDesc)
+		sendGatewayServiceError(w, http.StatusBadRequest, ErrInvalidParam, ErrInvalidParamDesc)
 		return
 	}
 	ctx := r.Context()
 	note := fmt.Sprintf("Updated at %s", time.Now().Format(time.RFC3339))
-	err := g.RefreshRecord(ctx, bdom, btx, nil, &note)
+	err := g.RefreshRecord(ctx, bdom, bdig, nil, &note)
 	if err != nil {
 		log.Println(err)
 	}
 	if errors.Is(err, gw.ErrCouldNotRefreshRecord) {
-		sendGatewayServiceError(w, http.StatusNotFound, ErrTxNotFound, ErrTxNotFoundDesc)
+		sendGatewayServiceError(w, http.StatusNotFound, ErrDigestNotFound, ErrDigestNotFoundDesc)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (g *GatewayService) PostAnchorsDomainsDomTransactionsTx(w http.ResponseWriter, r *http.Request, dom string, tx string) {
+func (g *GatewayService) PostAnchorsDomainsDomainDigestsDigest(w http.ResponseWriter, r *http.Request, dom string, dig string) {
 	bdom, err1 := hex.DecodeString(dom)
-	btx, err2 := hex.DecodeString(tx)
+	bdig, err2 := hex.DecodeString(dig)
 	if err1 != nil || err2 != nil {
-		sendGatewayServiceError(w, http.StatusBadRequest, ErrInvalidID, ErrInvalidIDDesc)
+		sendGatewayServiceError(w, http.StatusBadRequest, ErrInvalidParam, ErrInvalidParamDesc)
 		return
 	}
 	ctx := r.Context()
-	_, err := g.GetRecord(ctx, bdom, btx)
+	_, err := g.GetRecord(ctx, bdom, bdig)
 	if err == nil {
-		sendGatewayServiceError(w, http.StatusInternalServerError, ErrTxAlreadyExists, ErrTxAlreadyExistsDesc)
+		sendGatewayServiceError(w, http.StatusInternalServerError, ErrDigestAlreadyExists, ErrDigestAlreadyExistsDesc)
 		return
 	}
-	btctx, err := g.RegisterTransaction(ctx, bdom, btx)
+	btctx, err := g.RegisterTransaction(ctx, bdom, bdig)
 	if err != nil {
 		log.Println(err)
 	}
@@ -120,7 +120,7 @@ func (g *GatewayService) PostAnchorsDomainsDomTransactionsTx(w http.ResponseWrit
 		sendGatewayServiceError(w, http.StatusInternalServerError, ErrRegisterFailed, ErrRegisterFailedDesc)
 		return
 	}
-	ar, err := g.GetRecord(ctx, bdom, btx)
+	ar, err := g.GetRecord(ctx, bdom, bdig)
 	if err != nil {
 		log.Println(err)
 	}
@@ -168,8 +168,8 @@ func (g *GatewayService) Close() error {
 
 func convertAnchor(a *model.Anchor) anchor.Anchor {
 	return anchor.Anchor{
-		Bbc1dom: hex.EncodeToString(a.BBc1DomainID[:]),
-		Bbc1tx:  hex.EncodeToString(a.BBc1TransactionID[:]),
+		Domain:  hex.EncodeToString(a.BBc1DomainID[:]),
+		Digest:  hex.EncodeToString(a.BBc1TransactionID[:]),
 		Chain:   a.BTCNet.String(),
 		Time:    int(a.Timestamp.Unix()),
 		Version: int(a.Version),

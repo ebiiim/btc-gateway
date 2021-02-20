@@ -24,14 +24,14 @@ const (
 // Anchor defines model for Anchor.
 type Anchor struct {
 
-	// BBc-1 domain ID in hexadecimal string.
-	Bbc1dom string `json:"bbc1dom"`
-
-	// BBc-1 transaction ID in hexadecimal string.
-	Bbc1tx string `json:"bbc1tx"`
-
 	// Target Bitcoin network. `Mainnet` `Testnet3` `Testnet4`(unsupported)
 	Chain string `json:"chain"`
+
+	// BBc-1 digest in hexadecimal string.
+	Digest string `json:"digest"`
+
+	// BBc-1 domain ID in hexadecimal string.
+	Domain string `json:"domain"`
 
 	// Timestamp embedded in the Anchor.
 	Time int `json:"time"`
@@ -47,7 +47,7 @@ type AnchorRecord struct {
 	// BBc-1 domain name that is not embedded in the Bitcoin transaction.
 	Bbc1name *string `json:"bbc1name,omitempty"`
 
-	// Bitcoin transaction ID transaction ID in hexadecimal string.
+	// Bitcoin transaction ID in hexadecimal string.
 	Btctx string `json:"btctx"`
 
 	// Comfirmations of the Bitcoin transaction.
@@ -81,15 +81,15 @@ type InternalServerError Error
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-	// Gets the anchor specified by BBc-1 domain ID and BBc-1 transaction ID.
-	// (GET /anchors/domains/{dom}/transactions/{tx})
-	GetAnchorsDomainsDomTransactionsTx(w http.ResponseWriter, r *http.Request, dom string, tx string)
-	// Requests to update the status of the anchor specified by BBc-1 domain ID and BBc-1 transaction ID.
-	// (PATCH /anchors/domains/{dom}/transactions/{tx})
-	PatchAnchorsDomainsDomTransactionsTx(w http.ResponseWriter, r *http.Request, dom string, tx string)
-	// Registers an anchor with specified BBc-1 domain ID and BBc-1 transaction ID.
-	// (POST /anchors/domains/{dom}/transactions/{tx})
-	PostAnchorsDomainsDomTransactionsTx(w http.ResponseWriter, r *http.Request, dom string, tx string)
+	// Gets the anchor specified by BBc-1 domain ID and BBc-1 digest.
+	// (GET /anchors/domains/{domain}/digests/{digest})
+	GetAnchorsDomainsDomainDigestsDigest(w http.ResponseWriter, r *http.Request, domain string, digest string)
+	// Requests to update the status of the anchor specified by BBc-1 domain ID and BBc-1 digest.
+	// (PATCH /anchors/domains/{domain}/digests/{digest})
+	PatchAnchorsDomainsDomainDigestsDigest(w http.ResponseWriter, r *http.Request, domain string, digest string)
+	// Registers an anchor with specified BBc-1 domain ID and BBc-1 digest.
+	// (POST /anchors/domains/{domain}/digests/{digest})
+	PostAnchorsDomainsDomainDigestsDigest(w http.ResponseWriter, r *http.Request, domain string, digest string)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -100,32 +100,32 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(http.HandlerFunc) http.HandlerFunc
 
-// GetAnchorsDomainsDomTransactionsTx operation middleware
-func (siw *ServerInterfaceWrapper) GetAnchorsDomainsDomTransactionsTx(w http.ResponseWriter, r *http.Request) {
+// GetAnchorsDomainsDomainDigestsDigest operation middleware
+func (siw *ServerInterfaceWrapper) GetAnchorsDomainsDomainDigestsDigest(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var err error
 
-	// ------------- Path parameter "dom" -------------
-	var dom string
+	// ------------- Path parameter "domain" -------------
+	var domain string
 
-	err = runtime.BindStyledParameter("simple", false, "dom", chi.URLParam(r, "dom"), &dom)
+	err = runtime.BindStyledParameter("simple", false, "domain", chi.URLParam(r, "domain"), &domain)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Invalid format for parameter dom: %s", err), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Invalid format for parameter domain: %s", err), http.StatusBadRequest)
 		return
 	}
 
-	// ------------- Path parameter "tx" -------------
-	var tx string
+	// ------------- Path parameter "digest" -------------
+	var digest string
 
-	err = runtime.BindStyledParameter("simple", false, "tx", chi.URLParam(r, "tx"), &tx)
+	err = runtime.BindStyledParameter("simple", false, "digest", chi.URLParam(r, "digest"), &digest)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Invalid format for parameter tx: %s", err), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Invalid format for parameter digest: %s", err), http.StatusBadRequest)
 		return
 	}
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetAnchorsDomainsDomTransactionsTx(w, r, dom, tx)
+		siw.Handler.GetAnchorsDomainsDomainDigestsDigest(w, r, domain, digest)
 	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -135,32 +135,32 @@ func (siw *ServerInterfaceWrapper) GetAnchorsDomainsDomTransactionsTx(w http.Res
 	handler(w, r.WithContext(ctx))
 }
 
-// PatchAnchorsDomainsDomTransactionsTx operation middleware
-func (siw *ServerInterfaceWrapper) PatchAnchorsDomainsDomTransactionsTx(w http.ResponseWriter, r *http.Request) {
+// PatchAnchorsDomainsDomainDigestsDigest operation middleware
+func (siw *ServerInterfaceWrapper) PatchAnchorsDomainsDomainDigestsDigest(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var err error
 
-	// ------------- Path parameter "dom" -------------
-	var dom string
+	// ------------- Path parameter "domain" -------------
+	var domain string
 
-	err = runtime.BindStyledParameter("simple", false, "dom", chi.URLParam(r, "dom"), &dom)
+	err = runtime.BindStyledParameter("simple", false, "domain", chi.URLParam(r, "domain"), &domain)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Invalid format for parameter dom: %s", err), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Invalid format for parameter domain: %s", err), http.StatusBadRequest)
 		return
 	}
 
-	// ------------- Path parameter "tx" -------------
-	var tx string
+	// ------------- Path parameter "digest" -------------
+	var digest string
 
-	err = runtime.BindStyledParameter("simple", false, "tx", chi.URLParam(r, "tx"), &tx)
+	err = runtime.BindStyledParameter("simple", false, "digest", chi.URLParam(r, "digest"), &digest)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Invalid format for parameter tx: %s", err), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Invalid format for parameter digest: %s", err), http.StatusBadRequest)
 		return
 	}
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.PatchAnchorsDomainsDomTransactionsTx(w, r, dom, tx)
+		siw.Handler.PatchAnchorsDomainsDomainDigestsDigest(w, r, domain, digest)
 	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -170,34 +170,34 @@ func (siw *ServerInterfaceWrapper) PatchAnchorsDomainsDomTransactionsTx(w http.R
 	handler(w, r.WithContext(ctx))
 }
 
-// PostAnchorsDomainsDomTransactionsTx operation middleware
-func (siw *ServerInterfaceWrapper) PostAnchorsDomainsDomTransactionsTx(w http.ResponseWriter, r *http.Request) {
+// PostAnchorsDomainsDomainDigestsDigest operation middleware
+func (siw *ServerInterfaceWrapper) PostAnchorsDomainsDomainDigestsDigest(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var err error
 
-	// ------------- Path parameter "dom" -------------
-	var dom string
+	// ------------- Path parameter "domain" -------------
+	var domain string
 
-	err = runtime.BindStyledParameter("simple", false, "dom", chi.URLParam(r, "dom"), &dom)
+	err = runtime.BindStyledParameter("simple", false, "domain", chi.URLParam(r, "domain"), &domain)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Invalid format for parameter dom: %s", err), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Invalid format for parameter domain: %s", err), http.StatusBadRequest)
 		return
 	}
 
-	// ------------- Path parameter "tx" -------------
-	var tx string
+	// ------------- Path parameter "digest" -------------
+	var digest string
 
-	err = runtime.BindStyledParameter("simple", false, "tx", chi.URLParam(r, "tx"), &tx)
+	err = runtime.BindStyledParameter("simple", false, "digest", chi.URLParam(r, "digest"), &digest)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Invalid format for parameter tx: %s", err), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Invalid format for parameter digest: %s", err), http.StatusBadRequest)
 		return
 	}
 
 	ctx = context.WithValue(ctx, ApiKeyScopes, []string{""})
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.PostAnchorsDomainsDomTransactionsTx(w, r, dom, tx)
+		siw.Handler.PostAnchorsDomainsDomainDigestsDigest(w, r, domain, digest)
 	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -245,13 +245,13 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/anchors/domains/{dom}/transactions/{tx}", wrapper.GetAnchorsDomainsDomTransactionsTx)
+		r.Get(options.BaseURL+"/anchors/domains/{domain}/digests/{digest}", wrapper.GetAnchorsDomainsDomainDigestsDigest)
 	})
 	r.Group(func(r chi.Router) {
-		r.Patch(options.BaseURL+"/anchors/domains/{dom}/transactions/{tx}", wrapper.PatchAnchorsDomainsDomTransactionsTx)
+		r.Patch(options.BaseURL+"/anchors/domains/{domain}/digests/{digest}", wrapper.PatchAnchorsDomainsDomainDigestsDigest)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/anchors/domains/{dom}/transactions/{tx}", wrapper.PostAnchorsDomainsDomTransactionsTx)
+		r.Post(options.BaseURL+"/anchors/domains/{domain}/digests/{digest}", wrapper.PostAnchorsDomainsDomainDigestsDigest)
 	})
 
 	return r
@@ -260,29 +260,29 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/9RXbW/bNhD+KwS3Dx3g2pLj929Jk3VB2y1IM2BDEcQUebbZSqRGnhJ7gf77QFKWrVhd",
-	"02Qdtm/i291z5+e5O99TrrNcK1Bo6eyeGrC5Vhb84oSJS/ijAItuxbVCUP6T5XkqOUOpVe+j1crtWb6C",
-	"jLmv7w0s6Ix+19uZ7oVT2zszRhtalmWHCrDcyNwZoTN6rm5ZKgUxwSExwEHegugQA1gYZQlTxL/u0rJD",
-	"z4w5Vnylzc8af9SFEt8eYfBHlEaycB4/g+xcIRjF0vdgbsEEa1/GBmuW5Sn4z/CEJsiXd7NZoWCdA0cQ",
-	"N+GkE27cPERHdjeJv0FWzBLNeWGMy2OeArNAHBDGkRTWw332zxairTzuvLXkpvbmyRXS6b5yo3MwKAPp",
-	"koTHQmfus+nq5IS/jInQGZOKnJ8SqcgK1kwAlxlLiUUj1bLr0rPNJR0MR+PJlCU8gkUU948Gw1Hk1wIW",
-	"UeTX7jzya3ceVfcFRG5NOxQ3ubMUrLuEOXy4/hw8NExZxt3eIzFuIYpoC3EcbSHG0RZiEm0hDqNxHYJb",
-	"t2HkKybVIcQrZpaA5EQi11IRBXinzacumb9jUinAOZlfgUUFeLT7HMxfFMoWea4Ngvihgb161wYBZQYt",
-	"CGQGFlmWE8gSEAKESxGugAQ6NFITj+L+YDAd9Se1fakQlmCcg1swVuqWKCudVuddMo/nZN4fDucv0BWW",
-	"wgLRKt00IokPPZQd6mqRNCDo7EPtbpvcKsJOzdeaGde1LZ18BI4ObMB0CVwbcUh5Vkvh7zRYCaaioGJt",
-	"+W1oxF0huGJIpPVl62HOt0TYI22Tmyu9hBttlq06QN4qg0ObTghfr4vRtD+BmI8G44mIF8MhiJgNxWQE",
-	"MUv6g9FoyuLBYjweJ5PxNEmS/pCPB6Ph4GgSR8liGo9adaHVQprMl157iP2VznbHRC8elaRJ/6iNnkpj",
-	"y+9zbBKJhplNFfIzfx5IU03utEnFUyQoVe0iSTX/RDyz2yQ4jUdfFEhF4i0xan00c94mjrpHNlUB2+0m",
-	"fn+bcC2A3ElckdzAQq7JvGqX82aKql1c3yiNN75vt6WqpaM+9PsOrGVLIKj9j1NYaFYrerVH8XpI6B56",
-	"e5C3bVN3EbWkxzVN4IWRuHnvCkHIzXEu38DGfbk6T1fABDgjoSrQ314eX5y/fHP2+847Cy98C5dqobcz",
-	"CeNuJik7NJUclPWEqaxcvD1+dXbz0y9vT88uA5/QBxqKzMnVK/KaIdyxDd2rxjTqxt3IXdc5KJZLOqNH",
-	"3agb0Q7NGa48/F4gi+2FSmV790JnZW+P6LZ3j+vS3V2CH5ocMzyHzgWd0deAoRza02DhVGd7+bdXjoCN",
-	"WbYfRS1j2OZJI2KjmrcMRa8BrSdJCJPYgnOwdlGk6YYwJerhaNf4gjE/kQ0C0jYAdUS9vdHcPzn68pPD",
-	"kbns0OFjnLWNtJ6YRZYxs2mLOAcuFxIESTbk4eDmMtA2LXmtsKV1qqia3XXpWGNYBgjGHTxpKKSdIBPH",
-	"v51IQtPeSRFNAfvz8LccI8vO08fH9mhw/chg/vl5s7z20uarQ51euO2vVurgsPq+ryX0v9VIhcW6DlLk",
-	"giF4xVhkWNTTxrfQj7YtFfRC2/9yCb2EpbQY8BL3PgUE+29U0viQfL8qVuBKG/knBMPPY0TVzn012zby",
-	"D9dORftkcfGD8X+gK1L4cWfHjGfRouzQHsvlJ9jYHjfA/LC6vynAZdxtesguhFB/C5PSGaUObmW1Hhjq",
-	"fyi7nYtz4seO6/KvAAAA//9g2wgLahIAAA==",
+	"H4sIAAAAAAAC/9RXXXPbthL9Kxjc+5A7w0ikrO83O/ZNPUlaj+POtJPxWCCwkpCQAAssbasZ/vcOAIoS",
+	"LaZ2naTTPgnEx+7B4pzd1WfKdV5oBQotnX+mBmyhlQX/ccLEJfxWgkX3xbVCUH7IiiKTnKHUqv/RauXm",
+	"LF9DztzovwaWdE7/09+Z7odV2z8zRhtaVVVEBVhuZOGM0Dk9V7csk4KY4JAY4CBvQUTEAJZGWcIU8ad7",
+	"tIromTHHiq+1+VHj/3WpxPdHGPwRpZEsnccvIDtXCEax7D2YWzDB2uPY4J7lRQZ+GI7QFPnqbj4vFdwX",
+	"wBHETViJwo6bh+jIbifxO8iaWaI5L41xcSwyYBaIA8I4ktJ6uF/9bOG2tcedt47YNN48uUI43agwugCD",
+	"MpCOr5n0IWk7umJmBUhOJHItFVGAd9p86pHFOyaVAlyQxRVYVIBHu+Fw8aJUtiwKbRDE/1zotnGm9Tka",
+	"UdwUbsKikWrlYiLkquZ8G8PJCX+ZkLBKpCJruGcCuMxZRsLpXsvFaDyZzljKRbyMk8HRcDSexP4blnES",
+	"+2+3Hvtvtx7X++vvTmw674xPjc2vkvPTp8Db+ufx1v84bvzHgy2+uMETb+8Dsfvugocyh47HkzlYZHlB",
+	"IE9BCBAOH66BBBa0cCXjZDAczsaDaWNfKoQVGOfgFoyVuiMAtTzr9R5ZJAuyGIxGixfonqu0QLTKNi0S",
+	"JIceqoi6FCQNCDr/0LiLal7WN2zeoSHLdWNKpx+Bo8MaIF0C10YcEp01Avgz5dUyqSKapjxRrCu8rbd3",
+	"WwiuGRJpfbJ6GPKthNAwZRl3Ntq8WOsV3Giz6nrfFDnedyA4tPlEEo5ngykkfDycTEWyHI1AJGwkpmNI",
+	"WDoYjsczlgyXk8kknU5maZoORnwyHI+GR9MkTpezZNwFkmu1lCb3GdYegn2l890y0csnRWU6OOqio9LY",
+	"8SDHJpVomNnUV/7K94As0+ROm0w8R3JSNS7STPNPxDO5S3KzZPyoIGrWbpnQ6KEd8y41NKWwLQPYTrfx",
+	"+92EawHkTuKaFAaW8p4s6qq4aIeonsX7G6XxxpfnrlB1FM6Hft+BtWwFBLV/nNJCOzvRqz2KN71A79Db",
+	"g7hta7e7UUd4XG0EXhqJm/dO+SE2x4V8Axs3cimfroEJcEZCGqC/vDy+OH/55uzXnXcWTvhKLdVSb1sP",
+	"xl09qyKaSQ7KesLUVi7eHr86u/nhp7enZ5eBT+gvGrLKydUr8poh3LEN3cu+NO4lvdht1wUoVkg6p0e9",
+	"uBfTiBYM1x5+P5DF9kNqsv3PYVD1Q9J0E35Qud0r8CXXccOz6FzQOX0NGDKgPQ02ws9pOB9+aNRuWwdx",
+	"3NFxbZ7VDbZSeEf/8xrQeqKEqxJbcg7WLsss2xCmRNMH7YpdMOabr2FA2gWguVF/rwv3R44eP3LYHVcR",
+	"HT3FWVf36slZ5jkzm64bF8DlUoIg6YY87EJcBPa7Jq8TtrJOEXVlu64cYwzLAcG4hWd1NjQKEnHc2wmk",
+	"KdI7JaIpYb/r/Z7tUBX99Q7yCxfZEf3xi3z7trO69qrm60OBXrjpZ0h0eJh63zfa+deKo8ZiXfkoC8EQ",
+	"vFQsMiybVuNbCkfbjqR5oe0/O2tewkpaDIiJO58Bgv07kmdySLufFStxrY38HYLhr+NCXcV9ItvW7w/X",
+	"TkH7NHH3B+P/Htd08F3OjhPPIkQV0T4r5CfY2D43wHxvuj8pwEXaTXqoDnpIuaXJ6JxSB7O22vQHzT+Q",
+	"3czFOfFdxnX1RwAAAP//7dyUR0ASAAA=",
 }
 
 // GetSwagger returns the Swagger specification corresponding to the generated code

@@ -22,17 +22,17 @@ var (
 	ErrInvalidRequestBody     = errors.New("btcgw:invalid_request_body")
 	ErrInvalidRequestBodyDesc = "Request body should be a JSON."
 
-	ErrInvalidID     = errors.New("btcgw::invalid_id")
-	ErrInvalidIDDesc = "ID should be a 32 bytes binary in hexadecimal string."
+	ErrInvalidParam     = errors.New("btcgw::invalid_param")
+	ErrInvalidParamDesc = "Parameter should be a 32 bytes binary in hexadecimal string."
 
-	ErrTxNotFound     = errors.New("btcgw::tx_not_found")
-	ErrTxNotFoundDesc = "Transaction not found."
+	ErrDigestNotFound     = errors.New("btcgw::digest_not_found")
+	ErrDigestNotFoundDesc = "Digest not found."
 
 	ErrRegisterFailed     = errors.New("btcgw::register_failed")
 	ErrRegisterFailedDesc = "Could not register. There may be a system error."
 
-	ErrTxAlreadyExists     = errors.New("btcgw::tx_already_exists")
-	ErrTxAlreadyExistsDesc = "Transaction already exists."
+	ErrDigestAlreadyExists     = errors.New("btcgw::digest_already_exists")
+	ErrDigestAlreadyExistsDesc = "Digest already exists."
 
 	ErrAPIKeyCreationFailed     = errors.New("btcgw::apikey_creation_failed")
 	ErrAPIKeyCreationFailedDesc = "Could not create API Key. There may be a system error."
