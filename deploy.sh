@@ -4,7 +4,7 @@ set -x
 
 # load .env
 set -o allexport; source .env; set +o allexport
-GCP_RUN_SERVICE_ACCOUNT=dl-run@$GCP_ID.iam.gserviceaccount.com
+GCP_RUN_SERVICE_ACCOUNT=btcgw-run@$GCP_ID.iam.gserviceaccount.com
 
 # set GCP project
 gcloud config set project $GCP_ID
