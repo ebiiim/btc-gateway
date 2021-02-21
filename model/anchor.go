@@ -60,7 +60,7 @@ var validAnchorVersions map[uint8]struct{} = map[uint8]struct{}{
 	255: {},
 }
 
-// anchorVersion specifies the version to be embeded by NewAnchor.
+// anchorVersion specifies the version to be embedded by NewAnchor.
 //   1: Version 1.
 // 255: Test use only.
 var anchorVersion uint8 = 1
