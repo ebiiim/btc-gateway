@@ -1,0 +1,4 @@
+[build]
+base = "./"
+publish = "./dist/swagger-ui"
+command = "cp .env.sample .env && make api-generate-swagger-ui"

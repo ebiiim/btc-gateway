@@ -5,11 +5,11 @@ info:
   description: ""
   termsOfService: ""
   contact:
-    name: ""
-    url: ""
+    name: "github.com/ebiiim/btcgw"
+    url: "https://github.com/ebiiim/btcgw"
   license:
-    name: "PLACE_HOLDER"
-    url: ""
+    name: "Apache-2.0"
+    url: "https://github.com/ebiiim/btcgw/blob/main/LICENSE"
 servers:
   - url: ""
 tags:
