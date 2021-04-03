@@ -28,8 +28,8 @@ var _ Authenticator = (*SpecialAuth)(nil)
 var _ Authenticator = (*DocstoreAuth)(nil)
 
 const (
-	paramPathDomainID      = "dom"
-	paramPathTransactionID = "tx"
+	paramPathDomainID      = "domain"
+	paramPathTransactionID = "digest"
 )
 
 // SpecialAuth is a dummy Authenticator for tests.
@@ -116,7 +116,7 @@ func (a *DocstoreAuth) Do(ctx context.Context, apiKey string, domainID string) (
 	if k.ScopeRegisterAll {
 		return true, nil
 	}
-	if k.ScopeRegisterDomain && k.DomainID == domainID {
+	if k.ScopeRegisterDomain && (k.DomainID == domainID) {
 		return true, nil
 	}
 	return false, nil
